@@ -3,7 +3,6 @@
     { pkgs, lib, ... }:
     {
       environment.systemPackages = [
-        pkgs.local.mpv-handler
         pkgs.nautilus
         pkgs.sioyek
       ];
@@ -16,7 +15,6 @@
           defaultApplications = {
             "application/x-xdg-protocol-tg" = [ "org.telegram.desktop.desktop" ];
             "x-scheme-handler/tg" = [ "org.telegram.desktop.desktop" ];
-            "x-scheme-handler/mpv" = [ "mpv-handler.desktop" ];
             "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
             "application/pdf" = [ "sioyek.desktop" ];
             "text/plain" = [ "helix.desktop" ];
@@ -28,7 +26,7 @@
             "x-scheme-handler/https"
             "x-scheme-handler/mailto"
             "text/html"
-          ] (_: "firefox.desktop");
+          ] (_: "google-chrome.desktop");
         };
         portal = {
           enable = true;

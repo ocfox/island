@@ -100,7 +100,7 @@
           scale 3
         }
 
-        output "HDMI-A-2" {
+        output "DP-3" {
           bg ${bg} fill
           mode 3840x2160
           position 0 0
@@ -132,13 +132,13 @@
 
         exec "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE; systemctl --user start sway-session.target" 
 
-        assign [app_id="firefox"] 1
+        assign [app_id="google-chrome"] 1
         assign [app_id="org.telegram.desktop"] 3
         for_window [title="Feishu Meetings"] floating enable
 
         exec uwsm app -- fcitx5 -d
 
-        exec uwsm app -- firefox
+        exec uwsm app -- google-chrome
         exec uwsm app -- Telegram
 
         workspace "10" output "HDMI-A-1"
@@ -153,7 +153,7 @@
           wl-clipboard
           wireplumber
           sway-contrib.grimshot
-          firefox
+          google-chrome
           telegram-desktop
         ];
         config.sway = {

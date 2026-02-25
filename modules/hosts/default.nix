@@ -4,6 +4,7 @@ let
 in
 {
   flake.nixosConfigurations = mkNixosFromAttrs {
+    everstone = "x86_64-linux";
     brick = "x86_64-linux";
     wall = "x86_64-linux";
     clare = "x86_64-linux";

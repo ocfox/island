@@ -21,8 +21,6 @@
               gpu-context = "waylandvk";
               cache = "yes";
               target-colorspace-hint = "yes";
-              "demuxer-max-back-bytes" = "1G";
-              "demuxer-max-bytes" = "2G";
             }
           );
         };
