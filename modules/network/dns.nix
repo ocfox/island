@@ -18,7 +18,7 @@
         ];
         listen-addrs = [ "::" ];
         listen-ports = [ 53 ];
-        upstream-mode = "parallel";
+        upstream-mode = "fastest_addr";
         upstream = [
           "tls://1.1.1.1"
           "quic://dns.alidns.com"
