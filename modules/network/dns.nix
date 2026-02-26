@@ -21,8 +21,6 @@
         upstream-mode = "fastest_addr";
         upstream = [
           "tls://1.1.1.1"
-          "quic://dns.alidns.com"
-          "h3://dns.alidns.com/dns-query"
           "tls://dot.pub"
           "https://doh.pub/dns-query"
         ];
