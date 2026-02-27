@@ -18,6 +18,8 @@
         hash = "sha256-FHRa6itAqi5i0XEqPbC1ueCoqKicbM7Qmvomwom/oX4=";
       };
       config = ''
+        render_bit_depth 10
+
         font pango:monospace 8.000000
         floating_modifier Mod4
         default_border pixel 2
@@ -169,6 +171,7 @@
       environment.sessionVariables = {
         NIXOS_OZONE_WL = "1";
         QT_IM_MODULES = "wayland;fcitx";
+        WLR_RENDERER = "vulkan";
       };
 
       programs = {
