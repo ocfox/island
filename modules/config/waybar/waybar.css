@@ -21,6 +21,7 @@ window>box {
 }
 
 #workspaces button {
+  color: #d8caac;
   min-width: 25px;
   min-height: 0px;
   padding: 0 0px;
@@ -37,7 +38,7 @@ window>box {
 
 #workspaces button:hover {
   background-color: #d8caac;
-  color: #d8caac;
+  color: #2b3339;
 }
 
 tooltip {

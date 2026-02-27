@@ -12,6 +12,11 @@
         name = "sawa";
         hash = "sha256-5+uyUEmkp++hjc6xCis9MVXE0PKzKPHZZNrDIYD3qnQ=";
       };
+      ed = pkgs.fetchurl {
+        url = "https://image.tmdb.org/t/p/original/s2XhIP2HQHbG4aLnIBqQsYCWEDB.jpg";
+        name = "ed";
+        hash = "sha256-FHRa6itAqi5i0XEqPbC1ueCoqKicbM7Qmvomwom/oX4=";
+      };
       config = ''
         font pango:monospace 8.000000
         floating_modifier Mod4
@@ -100,8 +105,8 @@
           scale 3
         }
 
-        output "DP-3" {
-          bg ${bg} fill
+        output "DP-2" {
+          bg ${ed} fill
           mode 3840x2160
           position 0 0
           scale 3
