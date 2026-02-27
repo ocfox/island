@@ -18,8 +18,6 @@
         hash = "sha256-FHRa6itAqi5i0XEqPbC1ueCoqKicbM7Qmvomwom/oX4=";
       };
       config = ''
-        render_bit_depth 10
-
         font pango:monospace 8.000000
         floating_modifier Mod4
         default_border pixel 2
@@ -84,6 +82,7 @@
         bindsym Mod4+Up focus up
         bindsym Mod4+a focus parent
         bindsym Mod4+apostrophe exec ${lib.getExe pkgs.local.swaylock}
+        bindsym Mod4+Shift+equal exec swaymsg output DP-2 hdr toggle
         bindsym Mod4+b splith
         bindsym Mod4+d move scratchpad
         bindsym Mod4+e layout toggle split
@@ -112,6 +111,8 @@
           mode 3840x2160
           position 0 0
           scale 3
+          render_bit_depth 10
+          hdr off
         }
 
         mode "resize" {
