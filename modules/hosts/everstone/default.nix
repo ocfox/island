@@ -19,6 +19,22 @@ in
 
           desktop
 
+          {
+            hardware.graphics = {
+
+              extraPackages = with pkgs; [
+                intel-media-driver
+                vpl-gpu-rt
+                intel-compute-runtime
+              ];
+            };
+            hardware.enableRedistributableFirmware = true;
+            boot.kernelParams = [ "i915.force_probe=56a1" "i915.enable_guc=3" ];
+            environment.sessionVariables = {
+              LIBVA_DRIVER_NAME = "iHD";
+            };
+          }
+
           { facter.reportPath = ./facter.json; }
           {
             fileSystems."/" = {

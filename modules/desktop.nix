@@ -12,7 +12,7 @@
         audio
 
         networkd
-        dns
+        # dns
 
         foot
         mako
