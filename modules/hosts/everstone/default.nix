@@ -29,12 +29,15 @@ in
               ];
             };
             hardware.enableRedistributableFirmware = true;
-            boot.kernelParams = [ "i915.force_probe=56a1" "i915.enable_guc=3" ];
+            boot.kernelParams = [
+              "i915.force_probe=56a1"
+              "i915.enable_guc=3"
+            ];
             environment.sessionVariables = {
               LIBVA_DRIVER_NAME = "iHD";
             };
           }
-
+          { services.mullvad-vpn.enable = true; }
           { facter.reportPath = ./facter.json; }
           {
             fileSystems."/" = {
