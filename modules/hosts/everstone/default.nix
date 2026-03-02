@@ -37,7 +37,6 @@ in
               LIBVA_DRIVER_NAME = "iHD";
             };
           }
-          { services.mullvad-vpn.enable = true; }
           { facter.reportPath = ./facter.json; }
           {
             fileSystems."/" = {
