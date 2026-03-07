@@ -16,6 +16,7 @@ in
         modules = with nixosModules; [
           boot
           facter
+          steam
 
           desktop
 
