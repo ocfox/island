@@ -6,7 +6,7 @@
     } (inputs.import-tree ./modules);
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     # vaultix.url = "github:milieuim/vaultix";
     vaultix.url = "github:ocfox/vaultix";
     flake-parts.url = "github:hercules-ci/flake-parts";
