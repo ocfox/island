@@ -20,6 +20,7 @@
               hwdec = "vaapi";
               gpu-context = "waylandvk";
               cache = "yes";
+              sub-auto = "fuzzy";
               target-colorspace-hint = "yes";
             }
           );

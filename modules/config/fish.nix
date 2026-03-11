@@ -14,6 +14,7 @@
         l = "eza --icons=auto --hyperlink --color=always --color-scale=all --color-scale-mode=gradient --git --git-repos -lh";
         swc = "sudo nixos-rebuild switch --flake /home/${config.my.name}/dev/den";
         tideinit = "tide configure --auto --style=Lean --prompt_colors='16 colors' --show_time='12-hour format' --lean_prompt_height='One line' --prompt_spacing=Compact --icons='Few icons' --transient=No";
+        gssm = "gamescope -W 3840 -H 2160 -r 60 -f --adaptive-sync --hdr-enabled --mangoapp -e -- steam -gamepadui";
         off = "poweroff";
         usd = "uwsm start default";
         g = "lazygit";
