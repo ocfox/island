@@ -157,6 +157,8 @@
     {
       my = {
         packages = with pkgs; [
+          hyfetch
+          fastfetch
           swaybg
           wl-clipboard
           wireplumber
