@@ -20,7 +20,6 @@
             "hide-when-typing" = "yes";
           };
           colors-dark = {
-            alpha = 0.95;
             background = "2b3339";
             foreground = "d8caac";
           };
