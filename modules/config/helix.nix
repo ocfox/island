@@ -41,6 +41,13 @@
       languages = {
         language = [
           {
+            name = "markdown";
+            soft-wrap = {
+              enable = true;
+              wrap-at-text-width = true;
+            };
+          }
+          {
             name = "nix";
             formatter = {
               command = "${lib.getExe pkgs.nixfmt}";
