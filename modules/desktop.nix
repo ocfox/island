@@ -11,7 +11,6 @@
         fcitx
         audio
 
-        networkd
         # dns
 
         foot

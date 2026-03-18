@@ -14,7 +14,7 @@
     nixos-facter.url = "github:numtide/nixos-facter-modules";
     jovian = {
       url = "github:Jovian-Experiments/Jovian-NixOS";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # inputs.nixpkgs.follows = "nixpkgs";
     };
     nixpkgs-wayland = {
       url = "github:nix-community/nixpkgs-wayland";

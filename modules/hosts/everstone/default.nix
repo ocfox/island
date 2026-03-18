@@ -17,6 +17,7 @@ in
           boot
           facter
           steam
+          networkd
 
           desktop
 
