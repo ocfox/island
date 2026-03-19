@@ -58,28 +58,69 @@
             language-id = "typescript";
             scope = "source.ts";
             injection-regex = "^(ts|typescript)$";
-            file-types = [
-              "ts"
-              "tsx"
-            ];
-            shebangs = [
-              "deno"
-              "node"
-            ];
+            file-types = [ "ts" ];
+            shebangs = [ "node" ];
             roots = [
-              "deno.json"
-              "deno.jsonc"
               "package.json"
               "tsconfig.json"
             ];
             auto-format = true;
             language-servers = [
               {
-                name = "deno-lsp";
+                name = "typescript-language-server";
                 except-features = [ "format" ];
               }
+            ];
+            formatter = {
+              command = "${lib.getExe pkgs.biome}";
+              args = [
+                "format"
+                "--stdin-file-path"
+                "file.ts"
+              ];
+            };
+          }
+          {
+            name = "tsx";
+            language-id = "typescriptreact";
+            scope = "source.tsx";
+            injection-regex = "^(tsx)$";
+            file-types = [ "tsx" ];
+            roots = [
+              "package.json"
+              "tsconfig.json"
+            ];
+            auto-format = true;
+            language-servers = [
               {
                 name = "typescript-language-server";
+                except-features = [ "format" ];
+              }
+            ];
+            formatter = {
+              command = "${lib.getExe pkgs.biome}";
+              args = [
+                "format"
+                "--stdin-file-path"
+                "file.tsx"
+              ];
+            };
+          }
+          {
+            name = "deno";
+            language-id = "deno";
+            scope = "source.ts";
+            injection-regex = "^(deno)$";
+            file-types = [ ];
+            shebangs = [ "deno" ];
+            roots = [
+              "deno.json"
+              "deno.jsonc"
+            ];
+            auto-format = true;
+            language-servers = [
+              {
+                name = "deno-lsp";
                 except-features = [ "format" ];
               }
             ];
@@ -146,7 +187,7 @@
       };
     in
     {
-      my.packages = [ pkgs.helix ];
+      my.packages = [ pkgs.helix pkgs.biome ];
 
       environment.variables.EDITOR = "hx";
 
