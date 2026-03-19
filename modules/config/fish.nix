@@ -47,7 +47,6 @@
 
       fishPackages = with pkgs; [
         fishPlugins.tide
-        fzf
         eza
         atuin
         zoxide
@@ -58,6 +57,8 @@
     in
     {
       users.users.${config.my.name}.shell = pkgs.fish;
+
+      programs.fzf.keybindings = true;
 
       programs.fish = {
         enable = true;
