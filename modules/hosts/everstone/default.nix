@@ -27,6 +27,7 @@ in
               extraPackages = with pkgs; [
                 intel-media-driver
                 vpl-gpu-rt
+                level-zero
                 intel-compute-runtime
               ];
             };
