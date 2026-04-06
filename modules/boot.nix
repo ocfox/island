@@ -4,9 +4,7 @@
     {
       boot.loader = {
         timeout = 30;
-        limine = {
-          enable = true;
-        };
+        limine.enable = true;
         efi.canTouchEfiVariables = true;
       };
 

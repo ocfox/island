@@ -41,6 +41,7 @@ in
             };
           }
           { facter.reportPath = ./facter.json; }
+          { programs.nix-ld.enable = true; }
           {
             fileSystems."/" = {
               device = "/dev/disk/by-uuid/fe0ecfb9-db21-43f0-915a-70c37765f181";
