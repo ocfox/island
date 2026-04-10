@@ -22,17 +22,17 @@ in
             jovian = {
               devices.steamdeck.enable = true;
 
-              # steam = {
-              #   enable = true;
-              #   user = "ocfox";
-              #   autoStart = true;
-              #   desktopSession = "sway-uwsm";
-              # };
+              steam = {
+                enable = true;
+                user = "ocfox";
+                autoStart = true;
+                desktopSession = "sway-uwsm";
+              };
 
-              # decky-loader = {
-              #   enable = true;
-              #   user = "ocfox";
-              # };
+              decky-loader = {
+                enable = true;
+                user = "ocfox";
+              };
             };
           }
 

@@ -178,6 +178,7 @@
       };
 
       programs = {
+        gpu-screen-recorder.enable = true;
         sway = {
           enable = true;
           wrapperFeatures.gtk = true;

@@ -9,6 +9,7 @@
         enable = true;
         capSysNice = false;
       };
+      services.seatd.enable = true;
       environment.systemPackages = with pkgs; [
         gamescope-wsi
         mangohud

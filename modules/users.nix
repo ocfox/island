@@ -52,6 +52,7 @@
               "adbusers"
               "wheel"
               "podman"
+              "seat"
               "realtime"
               "dialout"
               "libvirtd"
