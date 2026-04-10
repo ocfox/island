@@ -1,21 +1,23 @@
 {
   lib,
-  rustPlatform,
+  buildGoModule,
   fetchFromGitHub,
 }:
 
-rustPlatform.buildRustPackage (finalAttrs: {
+buildGoModule {
   pname = "ctct";
-  version = "1";
+  version = "1.0";
 
   src = fetchFromGitHub {
     owner = "ocfox";
     repo = "ctct";
-    rev = "8dc7dd97c7807cd4fcd9b61a794c50d4ec702ee3";
-    hash = "sha256-84qs0EXwy5xss6gmh/4QNX92i2C86P6Vqg3xK6wft1U=";
+    rev = "a6d620517d4e8d833308683f81aa0cb2886b551f";
+    hash = "sha256-xDotrHWzC/5aaekZxekluqDxUL6EUXS2UKdwJMvZyIs=";
   };
 
-  cargoHash = "sha256-yvXrlpUMxxiAHsaEGyF7uuA2cZDAI9Qu5JPo5VXNhBs=";
+  vendorHash = null;
+
+  ldflags = [ "-s" ];
 
   meta.mainProgram = "ctct";
-})
+}
