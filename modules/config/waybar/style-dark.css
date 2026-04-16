@@ -64,9 +64,10 @@ tooltip label {
 #network,
 #battery,
 #custom-powermenu,
+#custom-color-switch,
 #custom-cava-internal {
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 #memory {
