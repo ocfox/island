@@ -68,7 +68,7 @@ tooltip label {
 }
 
 #memory {
-  color: #8da101;
+  color: #35a77c;
 }
 
 #cpu {
@@ -96,7 +96,7 @@ tooltip label {
 }
 
 #network {
-  color: #35a77c;
+  color: #8da101;
 }
 
 #network.disconnected {
@@ -109,7 +109,7 @@ tooltip label {
 }
 
 #window {
-  color: #5c6a72;
+  color: #35a77c;
 }
 
 #custom-music {

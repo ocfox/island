@@ -21,10 +21,10 @@
         GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
         cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
         if [ "$cur" = "prefer-dark" ]; then
-          pkill -USR2 foot
+          ${pkgs.procps}/bin/pkill -USR2 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-light"
         else
-          pkill -USR1 foot
+          ${pkgs.procps}/bin/pkill -USR1 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-dark"
         fi
       '';

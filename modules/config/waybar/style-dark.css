@@ -13,7 +13,7 @@ window#waybar {
 
 window>box {
   margin: 0 0px;
-  background-color: rgba(43, 51, 57, 1.0);
+  background-color: #2d353b;
 }
 
 #workspaces {
@@ -21,7 +21,7 @@ window>box {
 }
 
 #workspaces button {
-  color: #d8caac;
+  color: #d3c6aa;
   min-width: 25px;
   min-height: 0px;
   padding: 0 0px;
@@ -29,24 +29,24 @@ window>box {
 
 #workspaces button.focused {
   background-color: #a7c080;
-  color: #2b3339;
+  color: #2d353b;
 }
 
 #workspaces button.urgent {
-  color: #d8caac;
+  color: #e67e80;
 }
 
 #workspaces button:hover {
-  background-color: #d8caac;
-  color: #2b3339;
+  background-color: #9da9a0;
+  color: #2d353b;
 }
 
 tooltip {
-  background: rgb(48, 45, 65);
+  background: #4c3743;
 }
 
 tooltip label {
-  color: rgb(217, 224, 238);
+  color: #d3c6aa;
 }
 
 #mode,
@@ -68,39 +68,39 @@ tooltip label {
 }
 
 #memory {
-  color: rgb(181, 232, 224);
+  color: #83c092;
 }
 
 #cpu {
-  color: rgb(245, 194, 231);
+  color: #d699b6;
 }
 
 #clock {
-  color: rgb(217, 224, 238);
+  color: #d3c6aa;
 }
 
 #idle_inhibitor {
-  color: rgb(221, 182, 242);
+  color: #d699b6;
 }
 
 #temperature {
-  color: rgb(150, 205, 251);
+  color: #7fbbb3;
 }
 
 #backlight {
-  color: rgb(248, 189, 150);
+  color: #e69875;
 }
 
 #pulseaudio {
-  color: rgb(245, 224, 220);
+  color: #83c092;
 }
 
 #network {
-  color: #ABE9B3;
+  color: #a7c080;
 }
 
 #network.disconnected {
-  color: rgb(255, 255, 255);
+  color: #7a8478;
 }
 
 #tray {
@@ -109,7 +109,7 @@ tooltip label {
 }
 
 #window {
-  color: rgb(181, 232, 224);
+  color: #83c092;
 }
 
 #custom-music {
@@ -117,5 +117,5 @@ tooltip label {
 }
 
 #custom-color-switch {
-  color: #d8caac;
+  color: #d3c6aa;
 }
