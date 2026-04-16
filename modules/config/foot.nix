@@ -23,6 +23,10 @@
             background = "2b3339";
             foreground = "d8caac";
           };
+          colors-light = {
+            background = "fdf6e3";
+            foreground = "5c6a72";
+          };
         };
       };
     };

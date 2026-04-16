@@ -1,0 +1,121 @@
+* {
+  font-family: "Sarasa Mono J";
+  font-size: 8pt;
+  font-weight: bold;
+  border-radius: 0px;
+  transition-property: background-color;
+  transition-duration: 0.5s;
+}
+
+window#waybar {
+  background-color: transparent;
+}
+
+window>box {
+  margin: 0 0px;
+  background-color: rgba(43, 51, 57, 1.0);
+}
+
+#workspaces {
+  margin: 0 0px;
+}
+
+#workspaces button {
+  color: #d8caac;
+  min-width: 25px;
+  min-height: 0px;
+  padding: 0 0px;
+}
+
+#workspaces button.focused {
+  background-color: #a7c080;
+  color: #2b3339;
+}
+
+#workspaces button.urgent {
+  color: #d8caac;
+}
+
+#workspaces button:hover {
+  background-color: #d8caac;
+  color: #2b3339;
+}
+
+tooltip {
+  background: rgb(48, 45, 65);
+}
+
+tooltip label {
+  color: rgb(217, 224, 238);
+}
+
+#mode,
+#clock,
+#memory,
+#temperature,
+#cpu,
+#custom-music,
+#idle_inhibitor,
+#temperature,
+#backlight,
+#pulseaudio,
+#network,
+#battery,
+#custom-powermenu,
+#custom-cava-internal {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+#memory {
+  color: rgb(181, 232, 224);
+}
+
+#cpu {
+  color: rgb(245, 194, 231);
+}
+
+#clock {
+  color: rgb(217, 224, 238);
+}
+
+#idle_inhibitor {
+  color: rgb(221, 182, 242);
+}
+
+#temperature {
+  color: rgb(150, 205, 251);
+}
+
+#backlight {
+  color: rgb(248, 189, 150);
+}
+
+#pulseaudio {
+  color: rgb(245, 224, 220);
+}
+
+#network {
+  color: #ABE9B3;
+}
+
+#network.disconnected {
+  color: rgb(255, 255, 255);
+}
+
+#tray {
+  padding-right: 8px;
+  padding-left: 10px;
+}
+
+#window {
+  color: rgb(181, 232, 224);
+}
+
+#custom-music {
+  color: #87c095;
+}
+
+#custom-color-switch {
+  color: #d8caac;
+}

@@ -148,7 +148,8 @@
 
       my.config.waybar = {
         "config" = pkgs.writeText "waybar-config.json" (builtins.toJSON waybarSettings);
-        "style.css" = ./waybar.css;
+        "style-dark.css" = ./style-dark.css;
+        "style-light.css" = ./style-light.css;
       };
     };
 }
