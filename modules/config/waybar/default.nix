@@ -130,7 +130,7 @@
             spacing = 5;
           };
 
-          "color-switch" = {
+          "custom/color-switch" = {
             exec = lib.getExe color_state;
             format = "{}";
             "on-click" = lib.getExe color_toggle;
