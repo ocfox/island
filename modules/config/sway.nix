@@ -173,7 +173,7 @@
 
       environment.sessionVariables = {
         NIXOS_OZONE_WL = "1";
-        # QT_IM_MODULES = "wayland;fcitx";
+        QT_QPA_PLATFORMTHEME = "gtk3";
         WLR_RENDERER = "vulkan";
       };
 

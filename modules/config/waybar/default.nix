@@ -7,6 +7,24 @@
       ...
     }:
     let
+      color_state = pkgs.writeShellScriptBin "waybar-color-state" ''
+        cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        if [ "$cur" = "prefer-dark" ]; then
+          printf "暗"
+        else
+          printf "明"
+        fi
+      '';
+
+      color_toggle = pkgs.writeShellScriptBin "waybar-color-toggle" ''
+        cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        if [ "$cur" = "prefer-dark" ]; then
+          gsettings set org.gnome.desktop.interface color-scheme "default"
+        else
+          gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
+        fi
+      '';
+
       waybarSettings = [
         {
           layer = "top";
@@ -20,6 +38,7 @@
             "memory"
             "cpu"
             "network"
+            "color-switch"
           ];
           "sway/workspaces" = {
             "disable-scroll" = true;
@@ -107,6 +126,12 @@
           tray = {
             "icon-size" = 14;
             spacing = 5;
+          };
+
+          "color-switch" = {
+            exec = lib.getExe color_state;
+            "on-click" = lib.getExe color_toggle;
+            tooltip = "Toggle theme";
           };
         }
       ];

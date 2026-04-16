@@ -187,7 +187,10 @@
       };
     in
     {
-      my.packages = [ pkgs.helix pkgs.biome ];
+      my.packages = [
+        pkgs.helix
+        pkgs.biome
+      ];
 
       environment.variables.EDITOR = "hx";
 
