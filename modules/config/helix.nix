@@ -10,6 +10,10 @@
       settingsFormat = pkgs.formats.toml { };
 
       settings = {
+        # theme = {
+        #   dark = "everforest_dark";
+        #   light = "everforest_light";
+        # };
         theme = "everforest_dark";
         editor = {
           line-number = "relative";

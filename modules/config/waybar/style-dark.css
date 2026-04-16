@@ -43,10 +43,12 @@ window>box {
 
 tooltip {
   background: #4c3743;
+  box-shadow: none;
 }
 
 tooltip label {
   color: #d3c6aa;
+  text-shadow: none;
 }
 
 #mode,

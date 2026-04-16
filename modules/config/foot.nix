@@ -9,6 +9,7 @@
     {
       programs.foot = {
         enable = true;
+        xdg.serverAutostart = true;
         settings = {
           url.launch = "foot -e xdg-open \${url}";
           main = {
