@@ -67,9 +67,9 @@
         builtins.toJSON {
           preset = "sapphic";
           mode = "rgb";
-          auto_detect_light_dark = true;
-          light_dark = "light";
-          lightness = 0.9;
+          auto_detect_light_dark = false;
+          light_dark = "dark";
+          lightness = 0.75;
           color_align = {
             mode = "custom";
             custom_colors = {
