@@ -1,9 +1,9 @@
 {
   flake.modules.nixos.android =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       programs.adb.enable = true;
-      users.users.ocfox.extraGroups = [ "adbusers" ];
+      users.users.${config.my.name}.extraGroups = [ "adbusers" ];
       environment.systemPackages = [
         pkgs.android-studio
       ];

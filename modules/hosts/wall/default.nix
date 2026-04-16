@@ -5,7 +5,7 @@ let
 in
 {
   flake.modules.nixos.wall =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       imports = mkHostModule {
         modules =
@@ -34,7 +34,7 @@ in
               environment.systemPackages = [
                 pkgs.kodi-gbm
               ];
-              users.users.ocfox.extraGroups = [ "input" ];
+              users.users.${config.my.name}.extraGroups = [ "input" ];
             }
             # {
             #   vaultix.secrets.vault = {

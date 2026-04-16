@@ -4,7 +4,7 @@ let
   nixosModules = config.flake.modules.nixos;
 in
 {
-  flake.modules.nixos.everstone =
+  flake.modules.nixos.gallery =
     {
       pkgs,
       ...

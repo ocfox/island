@@ -1,7 +1,7 @@
 { inputs, ... }:
 {
   flake.modules.nixos.nix =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       nix = {
         registry = {
@@ -23,7 +23,7 @@
         settings = {
           trusted-users = [
             "root"
-            "ocfox"
+            "${config.my.name}"
           ];
           warn-dirty = false;
 
