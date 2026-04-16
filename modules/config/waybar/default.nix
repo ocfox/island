@@ -8,7 +8,8 @@
     }:
     let
       color_state = pkgs.writeShellScriptBin "waybar-color-state" ''
-        cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
+        cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
         if [ "$cur" = "prefer-dark" ]; then
           printf "暗"
         else
@@ -17,11 +18,12 @@
       '';
 
       color_toggle = pkgs.writeShellScriptBin "waybar-color-toggle" ''
-        cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
+        cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
         if [ "$cur" = "prefer-dark" ]; then
-          gsettings set org.gnome.desktop.interface color-scheme "default"
+          $GSETTINGS set org.gnome.desktop.interface color-scheme "default"
         else
-          gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
+          $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-dark"
         fi
       '';
 
@@ -38,7 +40,7 @@
             "memory"
             "cpu"
             "network"
-            "color-switch"
+            "custom/color-switch"
           ];
           "sway/workspaces" = {
             "disable-scroll" = true;
@@ -130,8 +132,9 @@
 
           "color-switch" = {
             exec = lib.getExe color_state;
+            format = "{}";
             "on-click" = lib.getExe color_toggle;
-            tooltip = "Toggle theme";
+            interval = "once";
           };
         }
       ];
