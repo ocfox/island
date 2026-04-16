@@ -4,7 +4,7 @@
   font-weight: bold;
   border-radius: 0px;
   transition-property: background-color;
-  transition-duration: 0s;
+  transition-duration: 0.2s;
 }
 
 window#waybar {

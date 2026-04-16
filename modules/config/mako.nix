@@ -30,8 +30,6 @@
         };
       };
 
-      my.config.mako = {
-        "config" = pkgs.writeText "mako-config" (lib.generators.toKeyValue { } makoSettings);
-      };
+      my.config."mako/config" = pkgs.writeText "mako-config" (lib.generators.toKeyValue { } makoSettings);
     };
 }

@@ -166,9 +166,7 @@
           google-chrome
           telegram-desktop
         ];
-        config.sway = {
-          "config" = pkgs.writeText "sway-config" config;
-        };
+        config."sway/config" = pkgs.writeText "sway-config" config;
       };
 
       environment.sessionVariables = {

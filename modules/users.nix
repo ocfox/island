@@ -10,7 +10,7 @@
         };
 
         my.config = lib.mkOption {
-          type = with lib.types; attrsOf (attrsOf path);
+          type = with lib.types; attrsOf path;
           default = { };
           description = "Declarative dotfile management for the user, mapping directly to ~/.config/";
         };
@@ -26,15 +26,16 @@
         {
           systemd.tmpfiles.rules = lib.flatten (
             lib.mapAttrsToList (
-              appName: files:
+              key: source:
               let
                 user = config.my.name;
-                targetDir = "/home/${user}/.config/${appName}";
+                targetPath = "/home/${user}/.config/${key}";
+                dir = "/home/${user}/.config/${lib.strings.removeSuffix (lib.last (lib.splitString "/" key)) key}";
               in
-              [ "d ${targetDir} - ${user} users - -" ]
-              ++ (lib.mapAttrsToList (
-                fileName: source: "L+ ${targetDir}/${fileName} - ${user} users - ${source}"
-              ) files)
+              [
+                "d ${dir} - ${user} users - -"
+                "L+ ${targetPath} - ${user} users - ${source}"
+              ]
             ) config.my.config
           );
         }

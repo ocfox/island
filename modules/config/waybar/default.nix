@@ -148,10 +148,8 @@
 
       programs.waybar.enable = true;
 
-      my.config.waybar = {
-        "config" = pkgs.writeText "waybar-config.json" (builtins.toJSON waybarSettings);
-        "style-dark.css" = ./style-dark.css;
-        "style-light.css" = ./style-light.css;
-      };
+      my.config."waybar/config" = pkgs.writeText "waybar-config.json" (builtins.toJSON waybarSettings);
+      my.config."waybar/style-dark.css" = ./style-dark.css;
+      my.config."waybar/style-light.css" = ./style-light.css;
     };
 }

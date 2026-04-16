@@ -198,9 +198,7 @@
 
       environment.variables.EDITOR = "hx";
 
-      my.config.helix = {
-        "config.toml" = settingsFormat.generate "helix-config.toml" settings;
-        "languages.toml" = settingsFormat.generate "helix-languages.toml" languages;
-      };
+      my.config."helix/config.toml" = settingsFormat.generate "helix-config.toml" settings;
+      my.config."helix/languages.toml" = settingsFormat.generate "helix-languages.toml" languages;
     };
 }

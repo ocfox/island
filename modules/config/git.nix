@@ -29,8 +29,6 @@
         pkgs.lazygit
       ];
 
-      my.config.git = {
-        "config" = settingsFormat.generate "git-config" gitSettings;
-      };
+      my.config."git/config" = settingsFormat.generate "git-config" gitSettings;
     };
 }

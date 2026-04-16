@@ -33,16 +33,8 @@
         pkgs.apple-cursor
       ];
 
-      my.config = {
-        "gtk-3.0" = {
-          "settings.ini" = pkgs.writeText "gtk3-settings.ini" settingsIniContent;
-        };
-        "gtk-4.0" = {
-          "settings.ini" = pkgs.writeText "gtk4-settings.ini" settingsIniContent;
-        };
-        "gtk-2.0" = {
-          "gtkrc" = pkgs.writeText "gtkrc-2.0" gtk2Content;
-        };
-      };
+      my.config."gtk-3.0/settings.ini" = pkgs.writeText "gtk3-settings.ini" settingsIniContent;
+      my.config."gtk-4.0/settings.ini" = pkgs.writeText "gtk4-settings.ini" settingsIniContent;
+      my.config."gtk-2.0/gtkrc" = pkgs.writeText "gtkrc-2.0" gtk2Content;
     };
 }
