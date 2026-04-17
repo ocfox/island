@@ -12,6 +12,11 @@
         name = "sawa";
         hash = "sha256-5+uyUEmkp++hjc6xCis9MVXE0PKzKPHZZNrDIYD3qnQ=";
       };
+      lock = pkgs.fetchurl {
+        url = "https://image.tmdb.org/t/p/original/3OdV1eThn2ZvCCx1kVjAicEZgzW.jpg";
+        name = "walk";
+        hash = "sha256-jFQUyYLsbaDDYNH36yB/lcRjoKDJvMXybMMaJTtZ0Sw=";
+      };
       ed = pkgs.fetchurl {
         url = "https://image.tmdb.org/t/p/original/s2XhIP2HQHbG4aLnIBqQsYCWEDB.jpg";
         name = "ed";
@@ -81,7 +86,7 @@
         bindsym Mod4+Shift+u exec ${lib.getExe' pkgs.wireplumber "wpctl"} set-volume @DEFAULT_AUDIO_SINK@ 5%+
         bindsym Mod4+Up focus up
         bindsym Mod4+a focus parent
-        bindsym Mod4+apostrophe exec ${lib.getExe pkgs.swaylock} -i ${bg}
+        bindsym Mod4+apostrophe exec ${lib.getExe pkgs.swaylock} -i ${lock}
         bindsym Mod4+Shift+equal exec swaymsg output DP-2 hdr toggle
         bindsym Mod4+b splith
         bindsym Mod4+d move scratchpad
