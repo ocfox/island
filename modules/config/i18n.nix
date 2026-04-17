@@ -41,7 +41,7 @@
               "Sarasa Gothic J"
             ];
             serif = [
-              "Sarasa Gothic J"
+              "Noto Serif CJK JP"
             ];
             monospace = [
               "JetBrainsMono Nerd Font"
@@ -53,8 +53,7 @@
         packages = with pkgs; [
           inter
           sarasa-gothic
-          local.lxgw-zhisong
-          local.lxgw-neoxihei
+          noto-fonts-cjk-serif
           noto-fonts-color-emoji
           nerd-fonts.jetbrains-mono
         ];
