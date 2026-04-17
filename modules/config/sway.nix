@@ -48,7 +48,7 @@
         bindsym Mod4+9 workspace number 9
         bindsym Mod4+Down focus down
         bindsym Mod4+Left focus left
-        bindsym Mod4+Return exec ${lib.getExe pkgs.foot}
+        bindsym Mod4+Return exec ${lib.getExe' pkgs.foot "footclient"}
         bindsym Mod4+Right focus right
         bindsym Mod4+Shift+0 move container to workspace number 10
         bindsym Mod4+Shift+1 move container to workspace number 1
