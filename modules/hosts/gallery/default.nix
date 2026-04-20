@@ -22,6 +22,7 @@ in
           desktop
 
           {
+            hardware.i2c.enable = true;
             hardware.graphics = {
 
               extraPackages = with pkgs; [

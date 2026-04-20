@@ -11,6 +11,7 @@
         fcitx
         audio
 
+        starship
         # dns
 
         foot
