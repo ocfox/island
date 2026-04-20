@@ -29,6 +29,18 @@
         fi
       '';
 
+      brightness = pkgs.writeShellScriptBin "waybar-brightness" ''
+        ${pkgs.ddcutil}/bin/ddcutil getvcp 0x10 --brief 2>/dev/null | ${pkgs.gawk}/bin/awk '{print $4}'
+      '';
+
+      brightness_up = pkgs.writeShellScriptBin "waybar-brightness-up" ''
+        ${pkgs.ddcutil}/bin/ddcutil setvcp 0x10 + 5
+      '';
+
+      brightness_down = pkgs.writeShellScriptBin "waybar-brightness-down" ''
+        ${pkgs.ddcutil}/bin/ddcutil setvcp 0x10 - 5
+      '';
+
       waybarSettings = [
         {
           layer = "top";
@@ -39,9 +51,10 @@
             "tray"
             "idle_inhibitor"
             "pulseaudio"
-            "memory"
-            "cpu"
-            "network"
+            # "memory"
+            # "cpu"
+            # "network"
+            "custom/bright"
             "custom/color-switch"
           ];
           "sway/workspaces" = {
@@ -138,12 +151,22 @@
             "on-click" = lib.getExe color_toggle;
             interval = "once";
           };
+
+          "custom/bright" = {
+            exec = lib.getExe brightness;
+            format = "{}%";
+            "on-scroll-up" = "${lib.getExe brightness_up}";
+            "on-scroll-down" = "${lib.getExe brightness_down}";
+            interval = "once";
+            tooltip = false;
+          };
         }
       ];
     in
     {
       my.packages = [
         pkgs.pwvucontrol
+        pkgs.ddcutil
       ];
 
       programs.waybar.enable = true;

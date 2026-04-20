@@ -60,6 +60,7 @@ tooltip label {
 #idle_inhibitor,
 #temperature,
 #backlight,
+#custom-bright,
 #pulseaudio,
 #network,
 #battery,
@@ -90,7 +91,8 @@ tooltip label {
   color: #3a94c5;
 }
 
-#backlight {
+#backlight,
+#custom-bright {
   color: #f57d26;
 }
 
