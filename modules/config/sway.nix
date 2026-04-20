@@ -15,7 +15,7 @@
       lock = pkgs.fetchurl {
         url = "https://image.tmdb.org/t/p/original/3OdV1eThn2ZvCCx1kVjAicEZgzW.jpg";
         name = "walk";
-        hash = "sha256-jFQUyYLsbaDDYNH36yB/lcRjoKDJvMXybMMaJTtZ0Sw=";
+        hash = "sha256-ixxjr5u82bltvxAoptjcRLA/avdstJLJeLV2uoeUQkE=";
       };
       ed = pkgs.fetchurl {
         url = "https://image.tmdb.org/t/p/original/s2XhIP2HQHbG4aLnIBqQsYCWEDB.jpg";
