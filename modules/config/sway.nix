@@ -80,6 +80,7 @@
         bindsym Mod4+Shift+m exec ${lib.getExe pkgs.local.monitor-toggle}
         bindsym Mod4+Shift+minus move scratchpad
         bindsym Mod4+Shift+p exec ${pkgs.sway-contrib.grimshot}/bin/grimshot copy output
+        bindsym Mod4+Shift+i exec ${pkgs.procps}/bin/pkill -USR1 waybar
         bindsym Mod4+Shift+q kill
         bindsym Mod4+Shift+r exec ${lib.getExe pkgs.local.recorder-toggle}
         bindsym Mod4+Shift+s exec ${pkgs.sway-contrib.grimshot}/bin/grimshot copy area
