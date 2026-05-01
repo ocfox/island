@@ -168,6 +168,7 @@
           swaybg
           wl-clipboard
           wireplumber
+          swayimg
           sway-contrib.grimshot
           google-chrome
           telegram-desktop
