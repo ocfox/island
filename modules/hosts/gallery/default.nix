@@ -7,6 +7,7 @@ in
   flake.modules.nixos.gallery =
     {
       pkgs,
+      config,
       ...
     }:
     {
@@ -61,7 +62,28 @@ in
 
           {
             kix.settings.hostPubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXy3v9Nss7GHEzbsRBgmU+lUGPyl8mwZySBzYR1cVG+ root@everstone";
-            kix.secrets.sarin-cf.file = inputs.self + "/secrets/sarin.cf.age";
+            kix.secrets = {
+              sarin-cf.file = inputs.self + "/secrets/sarin.cf.age";
+              sarin-cf-cr.file = inputs.self + "/secrets/sarin.cf.cr.age";
+            };
+          }
+
+          {
+            services.cloudflared = {
+              enable = true;
+              certificateFile = config.kix.secrets.sarin-cf.path;
+              tunnels = {
+                test = {
+                  credentialsFile = config.kix.secrets.sarin-cf-cr.path;
+                  default = "http_status:404";
+                  ingress = {
+                    "testcf.s4r.in" = {
+                      service = "http://localhost:3000";
+                    };
+                  };
+                };
+              };
+            };
           }
         ];
       };
