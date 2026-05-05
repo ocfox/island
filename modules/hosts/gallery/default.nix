@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, inputs, ... }:
 let
   inherit (config.flake.lib) mkHostModule;
   nixosModules = config.flake.modules.nixos;
@@ -12,12 +12,12 @@ in
     {
       imports = mkHostModule {
         stateVersion = "25.11";
-        # hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIoT6gPSX5fd1bGnANf5xj1HMKEhNgA3CAN0TgiAP6lJ root@brick";
         modules = with nixosModules; [
           boot
           facter
           steam
           networkd
+          inputs.kix.nixosModules.default
 
           desktop
 
@@ -58,6 +58,11 @@ in
           { services.blueman.enable = true; }
           { networking.firewall.enable = false; }
           { boot.binfmt.emulatedSystems = [ "aarch64-linux" ]; }
+
+          {
+            kix.settings.hostPubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXy3v9Nss7GHEzbsRBgmU+lUGPyl8mwZySBzYR1cVG+ root@everstone";
+            kix.secrets.sarin-cf.file = inputs.self + "/secrets/sarin.cf.age";
+          }
         ];
       };
     };

@@ -7,7 +7,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    # vaultix.url = "github:milieuim/vaultix";
+    kix.url = "github:ocfox/kix";
     vaultix.url = "github:ocfox/vaultix";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
