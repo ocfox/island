@@ -11,6 +11,7 @@
     vaultix.url = "github:ocfox/vaultix";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
+    helix.url = "github:helix-editor/helix";
     nixos-facter.url = "github:numtide/nixos-facter-modules";
     nixpkgs-wayland = {
       url = "github:nix-community/nixpkgs-wayland";

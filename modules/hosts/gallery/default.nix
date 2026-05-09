@@ -55,7 +55,13 @@ in
               fsType = "vfat";
             };
           }
-          { my.packages = [ pkgs.qbittorrent ]; }
+          {
+            my.packages = [
+              pkgs.qbittorrent
+              pkgs.vesktop
+              pkgs.spotify
+            ];
+          }
           { services.blueman.enable = true; }
           { networking.firewall.enable = false; }
           { boot.binfmt.emulatedSystems = [ "aarch64-linux" ]; }

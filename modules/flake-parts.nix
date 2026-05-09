@@ -18,6 +18,7 @@
         };
         overlays = [
           inputs.self.overlays.default
+          inputs.helix.overlays.default
           inputs.nixpkgs-wayland.overlay
         ];
       };
