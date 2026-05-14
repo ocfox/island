@@ -65,16 +65,16 @@
 
       my.config."hyfetch.json" = pkgs.writeText "hyfetch-config.json" (
         builtins.toJSON {
-          preset = "sapphic";
+          preset = "unlabeled1";
           mode = "rgb";
-          auto_detect_light_dark = false;
-          light_dark = "dark";
-          lightness = 0.75;
+          auto_detect_light_dark = true;
+          light_dark = "light";
+          lightness = 0.8;
           color_align = {
             mode = "custom";
             custom_colors = {
-              "1" = 0;
-              "2" = 1;
+              "1" = 2;
+              "2" = 0;
             };
           };
           backend = "fastfetch";
