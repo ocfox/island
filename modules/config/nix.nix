@@ -25,7 +25,7 @@
           warn-dirty = false;
 
           substituters = [
-            "https://cache.garnix.io"
+            "https://xrelay.s4r.in"
           ];
           trusted-public-keys = [
             "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
