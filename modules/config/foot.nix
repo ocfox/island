@@ -63,13 +63,15 @@
         };
       };
 
+      my.packages = [ pkgs.gh ];
+
       my.config."hyfetch.json" = pkgs.writeText "hyfetch-config.json" (
         builtins.toJSON {
           preset = "unlabeled1";
           mode = "rgb";
           auto_detect_light_dark = true;
           light_dark = "light";
-          lightness = 0.8;
+          lightness = 0.85;
           color_align = {
             mode = "custom";
             custom_colors = {
