@@ -23,9 +23,7 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     cd "teto 1"
     mkdir output
-    win2xcur -o output *.ani *.cur
     win2xcur -o output --scale 2 *.ani *.cur
-    win2xcur -o output --scale 3 *.ani *.cur
   '';
 
   installPhase = ''

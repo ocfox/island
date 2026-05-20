@@ -136,7 +136,7 @@
 
 
         set $my_cursor teto-cursor
-        set $my_cursor_size 32
+        set $my_cursor_size 24
 
         seat "*" xcursor_theme $my_cursor $my_cursor_size
         exec_always {
@@ -181,7 +181,7 @@
         QT_QPA_PLATFORMTHEME = "gtk3";
         WLR_RENDERER = "vulkan";
         XCURSOR_THEME = "teto-cursor";
-        XCURSOR_SIZE = "32";
+        XCURSOR_SIZE = "24";
       };
 
       programs = {
