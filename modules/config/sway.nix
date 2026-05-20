@@ -135,7 +135,7 @@
         }
 
 
-        set $my_cursor macOS
+        set $my_cursor teto-cursor
         set $my_cursor_size 24
 
         seat seat0 xcursor_theme $my_cursor $my_cursor_size

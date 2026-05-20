@@ -11,7 +11,7 @@
         Settings = {
           gtk-theme-name = "Adwaita-dark";
           gtk-icon-theme-name = "Numix-Circle";
-          gtk-cursor-theme-name = "macOS";
+          gtk-cursor-theme-name = "teto-cursor";
           gtk-application-prefer-dark-theme = 1;
           gtk-cursor-theme-size = 24;
           gtk-xft-hinting = 1;
@@ -22,7 +22,7 @@
       gtk2Content = ''
         gtk-theme-name = "Adwaita-dark"
         gtk-icon-theme-name = "Numix-Circle"
-        gtk-cursor-theme-name = "macOS"
+        gtk-cursor-theme-name = "teto-cursor"
         gtk-cursor-theme-size = 24
       '';
     in
@@ -30,7 +30,7 @@
       my.packages = [
         pkgs.gnome-themes-extra
         pkgs.numix-icon-theme-circle
-        pkgs.apple-cursor
+        pkgs.local.teto-cursor
       ];
 
       my.config."gtk-3.0/settings.ini" = pkgs.writeText "gtk3-settings.ini" settingsIniContent;
