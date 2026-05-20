@@ -24,6 +24,8 @@ stdenvNoCC.mkDerivation {
     cd "teto 1"
     mkdir output
     win2xcur -o output *.ani *.cur
+    win2xcur -o output --scale 2 *.ani *.cur
+    win2xcur -o output --scale 3 *.ani *.cur
   '';
 
   installPhase = ''
@@ -166,10 +168,4 @@ Name=teto-cursor
 Comment=Teto cursor theme
 EOF
   '';
-
-  meta = {
-    description = "Teto cursor theme";
-    license = lib.licenses.unfree;
-    platforms = lib.platforms.linux;
-  };
 }

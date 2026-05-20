@@ -136,9 +136,9 @@
 
 
         set $my_cursor teto-cursor
-        set $my_cursor_size 48
+        set $my_cursor_size 32
 
-        seat seat0 xcursor_theme $my_cursor $my_cursor_size
+        seat "*" xcursor_theme $my_cursor $my_cursor_size
         exec_always {
             gsettings set org.gnome.desktop.interface cursor-theme $my_cursor
             gsettings set org.gnome.desktop.interface cursor-size $my_cursor_size
@@ -180,6 +180,8 @@
         NIXOS_OZONE_WL = "1";
         QT_QPA_PLATFORMTHEME = "gtk3";
         WLR_RENDERER = "vulkan";
+        XCURSOR_THEME = "teto-cursor";
+        XCURSOR_SIZE = "32";
       };
 
       programs = {

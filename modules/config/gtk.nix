@@ -13,7 +13,7 @@
           gtk-icon-theme-name = "Numix-Circle";
           gtk-cursor-theme-name = "teto-cursor";
           gtk-application-prefer-dark-theme = 1;
-          gtk-cursor-theme-size = 48;
+          gtk-cursor-theme-size = 32;
           gtk-xft-hinting = 1;
           gtk-xft-hintstyle = "hintslight";
         };
@@ -23,7 +23,7 @@
         gtk-theme-name = "Adwaita-dark"
         gtk-icon-theme-name = "Numix-Circle"
         gtk-cursor-theme-name = "teto-cursor"
-        gtk-cursor-theme-size = 48
+        gtk-cursor-theme-size = 32
       '';
     in
     {
