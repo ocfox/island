@@ -1,19 +1,16 @@
 { config, ... }:
-let
-  base = with config.flake.modules.nixos; [
-    users
-    nix
-    i18n
-    git
-    helix
-    shell
-  ];
-in
 {
   flake.modules.nixos.base =
     { pkgs, ... }:
     {
-      imports = base;
+      imports = with config.flake.modules.nixos; [
+        users
+        nix
+        i18n
+        git
+        helix
+        shell
+      ];
       services = {
         pcscd.enable = true;
         openssh = {

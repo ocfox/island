@@ -21,7 +21,7 @@
         };
 
         settings = {
-          trusted-users = [ "${config.my.name}" ];
+          trusted-users = [ config.my.name ];
           warn-dirty = false;
 
           substituters = [

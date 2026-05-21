@@ -5,7 +5,7 @@
   ...
 }:
 let
-  inherit (inputs.nixpkgs.lib) mapAttrs nixosSystem;
+  inherit (inputs.nixpkgs.lib) mapAttrs nixosSystem optional;
 in
 {
   flake.lib = {
@@ -13,23 +13,16 @@ in
       {
         modules ? [ ],
         stateVersion,
-        hostKey ? "",
+        hostKey ? null,
       }:
       [
         config.flake.modules.nixos.base
         { system.stateVersion = stateVersion; }
       ]
-      ++ (
-        if hostKey != "" then
-          [
-            {
-              imports = [ inputs.vaultix.nixosModules.default ];
-              vaultix.settings.hostPubkey = hostKey;
-            }
-          ]
-        else
-          [ ]
-      )
+      ++ optional (hostKey != null) {
+        imports = [ inputs.vaultix.nixosModules.default ];
+        vaultix.settings.hostPubkey = hostKey;
+      }
       ++ modules;
 
     mkNixos =

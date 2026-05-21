@@ -5,11 +5,7 @@ let
 in
 {
   flake.modules.nixos.gallery =
-    {
-      pkgs,
-      config,
-      ...
-    }:
+    { pkgs, config, ... }:
     {
       imports = mkHostModule {
         stateVersion = "25.11";
@@ -19,21 +15,15 @@ in
           steam
           networkd
           inputs.kix.nixosModules.default
-
           desktop
-
           {
             hardware.i2c.enable = true;
-            hardware.graphics = {
-
-              extraPackages = with pkgs; [
-                intel-media-driver
-                vpl-gpu-rt
-                level-zero
-                intel-compute-runtime
-              ];
-            };
-            hardware.enableRedistributableFirmware = true;
+            hardware.graphics.extraPackages = with pkgs; [
+              intel-media-driver
+              vpl-gpu-rt
+              level-zero
+              intel-compute-runtime
+            ];
             boot.kernelParams = [
               "i915.force_probe=56a1"
               "i915.enable_guc=3"
@@ -43,29 +33,27 @@ in
             };
           }
           { facter.reportPath = ./facter.json; }
-          { programs.nix-ld.enable = true; }
           {
             fileSystems."/" = {
               device = "/dev/disk/by-uuid/fe0ecfb9-db21-43f0-915a-70c37765f181";
               fsType = "btrfs";
             };
-
             fileSystems."/boot" = {
               device = "/dev/disk/by-uuid/3307-5F4E";
               fsType = "vfat";
             };
           }
           {
-            my.packages = [
-              pkgs.qbittorrent
-              pkgs.vesktop
-              pkgs.spotify
+            programs.nix-ld.enable = true;
+            my.packages = with pkgs; [
+              qbittorrent
+              vesktop
+              spotify
             ];
+            services.blueman.enable = true;
+            networking.firewall.enable = false;
+            boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
           }
-          { services.blueman.enable = true; }
-          { networking.firewall.enable = false; }
-          { boot.binfmt.emulatedSystems = [ "aarch64-linux" ]; }
-
           {
             kix.settings.hostPubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXy3v9Nss7GHEzbsRBgmU+lUGPyl8mwZySBzYR1cVG+ root@everstone";
             kix.secrets = {
@@ -73,21 +61,14 @@ in
               sarin-cf-cr.file = inputs.self + "/secrets/sarin.cf.cr.age";
             };
           }
-
           {
             services.cloudflared = {
               enable = true;
               certificateFile = config.kix.secrets.sarin-cf.path;
-              tunnels = {
-                test = {
-                  credentialsFile = config.kix.secrets.sarin-cf-cr.path;
-                  default = "http_status:404";
-                  ingress = {
-                    "testcf.s4r.in" = {
-                      service = "http://localhost:3000";
-                    };
-                  };
-                };
+              tunnels.test = {
+                credentialsFile = config.kix.secrets.sarin-cf-cr.path;
+                default = "http_status:404";
+                ingress."testcf.s4r.in".service = "http://localhost:3000";
               };
             };
           }
