@@ -1,29 +1,25 @@
 {
-  lib,
-  fetchzip,
+  fetchurl,
   stdenvNoCC,
-  win2xcur,
 }:
 
 let
-  version = "1";
-  src = fetchzip {
-    name = "teto-cursor";
-    url = "https://s3.s4r.in/teto-cursor.zip";
-    hash = "sha256-un5FsVtjWORScQRlj8rrhYdtUjR3o7UzliXfN5ML8rw=";
-    stripRoot = false;
+  version = "2";
+  src = fetchurl {
+    name = "teto-cursor-xcur.tar.gz";
+    url = "https://s3.s4r.in/teto-cursor-xcur.tar.gz";
+    hash = "sha256-cZsVbEvA7tVbubX5HDEy/xUp6sugVkiRr51uymC/f3s=";
   };
 in
 stdenvNoCC.mkDerivation {
   pname = "teto-cursor";
   inherit version src;
 
-  nativeBuildInputs = [ win2xcur ];
+  dontUnpack = true;
 
   buildPhase = ''
-    cd "teto 1"
     mkdir output
-    win2xcur -o output --scale 2 *.ani *.cur
+    tar xzf $src -C output
   '';
 
   installPhase = ''
