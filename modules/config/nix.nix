@@ -24,12 +24,6 @@
           trusted-users = [ config.my.name ];
           warn-dirty = false;
 
-          substituters = [
-            "https://xrelay.s4r.in"
-          ];
-          trusted-public-keys = [
-            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-          ];
           nix-path = [ "nixpkgs=${inputs.nixpkgs}" ];
           auto-optimise-store = true;
         };
