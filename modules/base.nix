@@ -22,7 +22,7 @@
             }
           ];
         };
-        yggdrasil.enable = true;
+        yggdrasil.enable = false;
       };
       hardware.enableRedistributableFirmware = true;
       environment.systemPackages = with pkgs; [
