@@ -1,6 +1,6 @@
 {
   flake.modules.nixos.vps =
-    { modulesPath, ... }:
+    { lib, modulesPath, ... }:
     {
       imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
@@ -22,7 +22,7 @@
       boot.extraModulePackages = [ ];
       boot.loader.grub = {
         enable = true;
-        device = "/dev/vda";
+        device = lib.mkDefault "nodev";
       };
       boot.kernelParams = [
         "console=ttyS0,115200n8"
@@ -30,7 +30,9 @@
       ];
 
       networking = {
+        dhcpcd.enable = false;
         firewall.enable = false;
+        useNetworkd = true;
         usePredictableInterfaceNames = false;
         nameservers = [
           "1.1.1.1"
@@ -40,6 +42,15 @@
         ];
         nftables = {
           enable = true;
+        };
+      };
+
+      systemd.network = {
+        enable = true;
+        networks."10-eth0" = {
+          matchConfig.Name = "eth0";
+          networkConfig.DHCP = lib.mkDefault "yes";
+          linkConfig.RequiredForOnline = "routable";
         };
       };
     };
