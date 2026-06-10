@@ -11,7 +11,7 @@ in
         hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOI13Y5GVOaICSu+q2oUFGqAW894ioVvEXY6q7KdYa6G root@cave";
         modules = [
           {
-            vaultix.secrets.mihomo = {
+            kix.secrets.mihomo = {
               file = inputs.self + "/secrets/mihomo.age";
               mode = "640";
             };
@@ -67,7 +67,7 @@ in
                 enable = true;
                 tunMode = true;
                 webui = pkgs.metacubexd;
-                configFile = config.vaultix.secrets.mihomo.path;
+                configFile = config.kix.secrets.mihomo.path;
               };
             };
           }

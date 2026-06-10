@@ -20,8 +20,8 @@ in
         { system.stateVersion = stateVersion; }
       ]
       ++ optional (hostKey != null) {
-        imports = [ inputs.vaultix.nixosModules.default ];
-        vaultix.settings.hostPubkey = hostKey;
+        imports = [ inputs.kix.nixosModules.default ];
+        kix.settings.hostPubkey = hostKey;
       }
       ++ modules;
 

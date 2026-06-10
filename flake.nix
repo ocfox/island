@@ -8,7 +8,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     kix.url = "github:ocfox/kix";
-    vaultix.url = "github:ocfox/vaultix";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
     helix.url = "github:helix-editor/helix";
