@@ -166,6 +166,10 @@
           ];
         };
 
+        services.postgresql.settings = {
+          shared_preload_libraries = "pg_stat_statements";
+        };
+
         services.prometheus.exporters = {
           node = {
             enable = true;
