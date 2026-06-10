@@ -129,11 +129,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1777891580,
-        "narHash": "sha256-ciBHN/T9hVsflx/K8/XPIX7p1MI955nJOkO0CYVjiC0=",
+        "lastModified": 1781060801,
+        "narHash": "sha256-P2tTHdVrCtOnJKCI7/NYMnc124tcmV3un4mtxqJvo5c=",
         "owner": "ocfox",
         "repo": "kix",
-        "rev": "81108c667f7bfaafb9ac930fdaf01f3cf7f2f2d9",
+        "rev": "ff67943e9aa4977fc6853fa1209e9b56ae6cfe4e",
         "type": "github"
       },
       "original": {

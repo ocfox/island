@@ -57,8 +57,8 @@ in
                 SMTP_SECURITY = "starttls";
                 SMTP_PORT = 587;
                 SMTP_HOST = "smtp.migadu.com";
-                SMTP_FROM = "vault@cyans.dev";
-                SMTP_USERNAME = "vault@cyans.dev";
+                SMTP_FROM = "vault@s4r.in";
+                SMTP_USERNAME = "vault@s4r.in";
                 DOMAIN = "https://vault.s4r.in";
               };
               environmentFile = config.kix.secrets.vault.path;
