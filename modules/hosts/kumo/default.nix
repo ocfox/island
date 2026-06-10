@@ -76,8 +76,65 @@ in
               };
             };
 
-            users.users.caddy.extraGroups = [ "acme" ];
           }
+          ({ pkgs, ... }: {
+            security.acme.certs."mastodon.ocfox.me" = {
+              dnsProvider = "cloudflare";
+              environmentFile = config.kix.secrets.cf-dns.path;
+              group = "mastodon";
+            };
+
+            services.mastodon = {
+              enable = true;
+              localDomain = "ocfox.me";
+              configureNginx = false;
+              streamingProcesses = 1;
+              smtp.fromAddress = "mastodon@ocfox.me";
+              extraConfig.WEB_DOMAIN = "mastodon.ocfox.me";
+              extraConfig.SINGLE_USER_MODE = "true";
+            };
+
+            services.caddy.virtualHosts."mastodon.ocfox.me" = {
+              useACMEHost = "mastodon.ocfox.me";
+              extraConfig = ''
+                handle_path /system/* {
+                  file_server * {
+                    root /var/lib/mastodon/public-system
+                  }
+                }
+
+                handle /api/v1/streaming/* {
+                  reverse_proxy unix//run/mastodon-streaming/streaming-1.socket
+                }
+
+                route * {
+                  file_server * {
+                    root ${pkgs.mastodon}/public
+                    pass_thru
+                  }
+                  reverse_proxy * unix//run/mastodon-web/web.socket
+                }
+
+                handle_errors {
+                  root * ${pkgs.mastodon}/public
+                  rewrite 500.html
+                  file_server
+                }
+
+                encode gzip
+
+                header /* {
+                  Strict-Transport-Security "max-age=31536000;"
+                }
+                header /emoji/* Cache-Control "public, max-age=31536000, immutable"
+                header /packs/* Cache-Control "public, max-age=31536000, immutable"
+                header /system/accounts/avatars/* Cache-Control "public, max-age=31536000, immutable"
+                header /system/media_attachments/files/* Cache-Control "public, max-age=31536000, immutable"
+              '';
+            };
+
+            users.users.caddy.extraGroups = [ "acme" "mastodon" ];
+          })
         ];
       };
     };
