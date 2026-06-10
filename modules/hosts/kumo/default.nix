@@ -8,6 +8,39 @@
       { config, pkgs, ... }:
       {
         imports = with self.modules.nixos; [ vps disko ];
+
+        networking.nftables.ruleset = ''
+          table inet filter {
+            chain input {
+              type filter hook input priority filter; policy drop;
+
+              iif lo accept
+              ct state { established, related } accept
+              ct state invalid drop
+
+              ip6 nexthdr icmpv6 icmpv6 type {
+                echo-request,
+                nd-neighbor-solicit,
+                nd-neighbor-advert,
+                nd-router-advert,
+                mld-listener-query,
+              } accept
+
+              tcp dport 22 accept
+              tcp dport { 80, 443 } accept
+              udp dport 443 accept
+            }
+
+            chain forward {
+              type filter hook forward priority filter; policy drop;
+            }
+
+            chain output {
+              type filter hook output priority filter; policy accept;
+            }
+          }
+        '';
+
         systemd.network.networks."10-eth0" = {
           address = [
             "2401:b60:e0fd:11::2/64"
