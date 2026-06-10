@@ -39,6 +39,11 @@ in
               file = inputs.self + "/secrets/cf-dns.age";
               mode = "640";
             };
+            kix.secrets.mastodon-smtp = {
+              file = inputs.self + "/secrets/mastodon-smtp.age";
+              mode = "640";
+              owner = "mastodon";
+            };
           }
           {
             security.acme = {
@@ -89,7 +94,13 @@ in
               localDomain = "ocfox.me";
               configureNginx = false;
               streamingProcesses = 1;
-              smtp.fromAddress = "mastodon@ocfox.me";
+              smtp = {
+                host = "smtp.migadu.com";
+                port = 587;
+                user = "mastodon@ocfox.me";
+                fromAddress = "mastodon@ocfox.me";
+                passwordFile = config.kix.secrets.mastodon-smtp.path;
+              };
               extraConfig.WEB_DOMAIN = "mastodon.ocfox.me";
               extraConfig.SINGLE_USER_MODE = "true";
             };
