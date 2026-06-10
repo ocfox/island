@@ -2,46 +2,57 @@
   inputs,
   config,
   withSystem,
+  lib,
   ...
 }:
 let
   inherit (inputs.nixpkgs.lib) mapAttrs nixosSystem optional;
 in
 {
-  flake.lib = {
-    mkHostModule =
-      {
-        modules ? [ ],
-        stateVersion,
-        hostKey ? null,
-      }:
-      [
-        config.flake.modules.nixos.base
-        { system.stateVersion = stateVersion; }
-      ]
-      ++ optional (hostKey != null) {
-        imports = [ inputs.kix.nixosModules.default ];
-        kix.settings.hostPubkey = hostKey;
+  options.hosts = lib.mkOption {
+    type = lib.types.lazyAttrsOf (
+      lib.types.submodule {
+        options = {
+          system = lib.mkOption { type = lib.types.str; };
+          stateVersion = lib.mkOption { type = lib.types.str; };
+          hostKey = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+          };
+          module = lib.mkOption { type = lib.types.deferredModule; };
+        };
       }
-      ++ modules;
+    );
+    default = { };
+  };
 
-    mkNixos =
-      system: name:
-      withSystem system (
-        { pkgs, ... }:
-        nixosSystem {
-          inherit system pkgs;
-          specialArgs = { inherit inputs; };
-          modules = [
-            config.flake.modules.nixos.${name}
+  config.flake.nixosConfigurations = mapAttrs (
+    name: host:
+    withSystem host.system (
+      { pkgs, ... }:
+      nixosSystem {
+        inherit pkgs;
+        system = host.system;
+        specialArgs = { inherit inputs; };
+        modules =
+          let
+            nixos = config.flake.modules.nixos;
+          in
+          [
+            host.module
+            nixos.base
+            { system.stateVersion = host.stateVersion; }
             {
               networking.hostName = name;
-              nixpkgs.hostPlatform = system;
+              nixpkgs.hostPlatform = host.system;
             }
-          ];
-        }
-      );
-
-    mkNixosFromAttrs = hosts: mapAttrs (name: system: config.flake.lib.mkNixos system name) hosts;
-  };
+          ]
+          ++ optional (host.hostKey != null) {
+            imports = [ inputs.kix.nixosModules.default ];
+            kix.settings.hostPubkey = host.hostKey;
+          }
+          ++ optional (nixos ? ${name}) nixos.${name};
+      }
+    )
+  ) config.hosts;
 }
