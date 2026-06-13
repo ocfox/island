@@ -366,11 +366,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1781361694,
-        "narHash": "sha256-2nkG+dW4IUsL+Q6CxY72RON56yL6UqgcEnQyi1IZhWk=",
+        "lastModified": 1781362799,
+        "narHash": "sha256-+NLIdqaQ0uUHLfgog/9q0lCiNROCHD8Y35J3cVI8oZw=",
         "ref": "refs/heads/master",
-        "rev": "71baf71e62d62718433d2e6804102b7dc7ca03c6",
-        "revCount": 490,
+        "rev": "2102d2bf251a7b67c4c0a4e271b3e0156fb91333",
+        "revCount": 491,
         "type": "git",
         "url": "https://codeberg.org/oxc/somnium"
       },
