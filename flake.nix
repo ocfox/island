@@ -20,9 +20,5 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    somnium = {
-      url = "git+https://codeberg.org/oxc/somnium";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 }
