@@ -7,8 +7,7 @@
     module =
       { config, pkgs, ... }:
       {
-        imports = with self.modules.nixos; [ vps disko ]
-          ++ [ inputs.somnium.nixosModules.og ];
+        imports = with self.modules.nixos; [ vps disko ];
 
         networking.nftables.ruleset = ''
           table inet filter {
@@ -55,23 +54,6 @@
           };
           routes = [ { Gateway = "2401:b60:e0fd:2b::1"; } ];
         };
-        services.somnium-og = {
-          enable = true;
-        };
-
-        security.acme.certs."og.s4r.in" = {
-          dnsProvider = "cloudflare";
-          environmentFile = config.kix.secrets.cf-dns.path;
-          group = "caddy";
-        };
-
-        services.caddy.virtualHosts."og.s4r.in" = {
-          useACMEHost = "og.s4r.in";
-          extraConfig = ''
-            reverse_proxy 127.0.0.1:${toString config.services.somnium-og.port}
-          '';
-        };
-
         kix.secrets.vault = {
           file = inputs.self + "/secrets/vault.age";
           mode = "640";
