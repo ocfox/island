@@ -1,6 +1,6 @@
 { pkgs }:
 pkgs.writeShellScriptBin "record-status" ''
-  pid=`${pkgs.procps}/bin/pgrep wf-recorder`
+  pid=`${pkgs.procps}/bin/pgrep -f 'gpu-screen-recorder.*Videos/record'`
   status=$?
 
   if [ $status != 0 ]
