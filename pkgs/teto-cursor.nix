@@ -6,9 +6,9 @@
 let
   version = "2";
   src = fetchurl {
-    name = "teto-cursor-xcur.tar.gz";
-    url = "https://s3.s4r.in/teto-cursor-xcur.tar.gz";
-    hash = "sha256-cZsVbEvA7tVbubX5HDEy/xUp6sugVkiRr51uymC/f3s=";
+    name = "teto-cursor.tar.gz";
+    url = "https://s3.s4r.in/teto-cursor.tar.gz";
+    hash = "sha256-Yuh28yrsLksKM81T+xBlmBkZzCkU2YRJYszHyIVE8FI=";
   };
 in
 stdenvNoCC.mkDerivation {
