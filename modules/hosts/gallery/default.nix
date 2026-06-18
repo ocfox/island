@@ -3,25 +3,19 @@
   hosts.gallery = {
     system = "x86_64-linux";
     stateVersion = "25.11";
+    hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXy3v9Nss7GHEzbsRBgmU+lUGPyl8mwZySBzYR1cVG+ root@everstone";
     module =
       { pkgs, config, ... }:
       {
-        imports =
-          with self.modules.nixos;
-          [
-            boot
-            facter
-            steam
-            networkd
-            desktop
-          ]
-          ++ [ inputs.kix.nixosModules.default ];
+        imports = with self.modules.nixos; [
+          boot
+          facter
+          steam
+          networkd
+          desktop
+        ];
         facter.reportPath = ./facter.json;
-        kix.settings.hostPubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIXy3v9Nss7GHEzbsRBgmU+lUGPyl8mwZySBzYR1cVG+ root@everstone";
-        kix.secrets = {
-          sarin-cf.file = inputs.self + "/secrets/sarin.cf.age";
-          sarin-cf-cr.file = inputs.self + "/secrets/sarin.cf.cr.age";
-        };
+        kix.secrets.test = { };
         hardware.i2c.enable = true;
         hardware.graphics.extraPackages = with pkgs; [
           intel-media-driver
@@ -37,15 +31,6 @@
         programs.nix-ld.enable = true;
         my.packages = with pkgs; [ qbittorrent vesktop spotify ];
         services.blueman.enable = true;
-        services.cloudflared = {
-          enable = true;
-          certificateFile = config.kix.secrets.sarin-cf.path;
-          tunnels.test = {
-            credentialsFile = config.kix.secrets.sarin-cf-cr.path;
-            default = "http_status:404";
-            ingress."testcf.s4r.in".service = "http://localhost:3000";
-          };
-        };
         networking.firewall.enable = false;
         boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
         fileSystems."/" = {

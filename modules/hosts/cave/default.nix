@@ -7,10 +7,7 @@
     module =
       { config, pkgs, ... }:
       {
-        kix.secrets.mihomo = {
-          file = inputs.self + "/secrets/mihomo.age";
-          mode = "640";
-        };
+        kix.secrets.mihomo.mode = "640";
         boot.loader.generic-extlinux-compatible.enable = true;
         boot.loader.grub.enable = false;
         fileSystems."/" = {

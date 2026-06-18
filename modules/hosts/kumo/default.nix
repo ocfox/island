@@ -54,16 +54,9 @@
           };
           routes = [ { Gateway = "2401:b60:e0fd:2b::1"; } ];
         };
-        kix.secrets.vault = {
-          file = inputs.self + "/secrets/vault.age";
-          mode = "640";
-        };
-        kix.secrets.cf-dns = {
-          file = inputs.self + "/secrets/cf-dns.age";
-          mode = "640";
-        };
+        kix.secrets.vault.mode = "640";
+        kix.secrets.cf-dns.mode = "640";
         kix.secrets.mastodon-smtp = {
-          file = inputs.self + "/secrets/mastodon-smtp.age";
           mode = "640";
           owner = "mastodon";
         };
@@ -159,16 +152,8 @@
         };
         users.users.caddy.extraGroups = [ "acme" "mastodon" ];
 
-        kix.secrets.grafana-secret-key = {
-          file = inputs.self + "/secrets/grafana-secret-key.age";
-          owner = "grafana";
-          mode = "400";
-        };
-        kix.secrets.grafana-admin = {
-          file = inputs.self + "/secrets/grafana-admin.age";
-          owner = "grafana";
-          mode = "400";
-        };
+        kix.secrets.grafana-secret-key.owner = "grafana";
+        kix.secrets.grafana-admin.owner = "grafana";
 
         services.victoriametrics = {
           enable = true;
