@@ -7,7 +7,10 @@
     module =
       { config, pkgs, ... }:
       {
-        imports = with self.modules.nixos; [ vps disko ];
+        imports = with self.modules.nixos; [
+          vps
+          disko
+        ];
 
         networking.nftables.ruleset = ''
           table inet filter {
@@ -150,7 +153,10 @@
             '';
           };
         };
-        users.users.caddy.extraGroups = [ "acme" "mastodon" ];
+        users.users.caddy.extraGroups = [
+          "acme"
+          "mastodon"
+        ];
 
         kix.secrets.grafana-secret-key.owner = "grafana";
         kix.secrets.grafana-admin.owner = "grafana";
@@ -228,8 +234,7 @@
           ];
         };
 
-        systemd.services.grafana.serviceConfig.EnvironmentFile =
-          config.kix.secrets.grafana-admin.path;
+        systemd.services.grafana.serviceConfig.EnvironmentFile = config.kix.secrets.grafana-admin.path;
 
         security.acme.certs."g.s4r.in" = {
           dnsProvider = "cloudflare";

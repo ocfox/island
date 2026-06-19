@@ -12,15 +12,15 @@
       ];
 
       my.config."mpv/mpv.conf" = pkgs.writeText "mpv.conf" (
-          lib.generators.toKeyValue { } {
-            vo = "gpu-next";
-            gpu-api = "vulkan";
-            hwdec = "vaapi";
-            gpu-context = "waylandvk";
-            cache = "yes";
-            sub-auto = "fuzzy";
-            target-colorspace-hint = "yes";
-          }
-        );
+        lib.generators.toKeyValue { } {
+          vo = "gpu-next";
+          gpu-api = "vulkan";
+          hwdec = "vaapi";
+          gpu-context = "waylandvk";
+          cache = "yes";
+          sub-auto = "fuzzy";
+          target-colorspace-hint = "yes";
+        }
+      );
     };
 }

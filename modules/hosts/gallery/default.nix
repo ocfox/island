@@ -29,7 +29,11 @@
         ];
         environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
         programs.nix-ld.enable = true;
-        my.packages = with pkgs; [ qbittorrent vesktop spotify ];
+        my.packages = with pkgs; [
+          qbittorrent
+          vesktop
+          spotify
+        ];
         services.blueman.enable = true;
         networking.firewall.enable = false;
         boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
