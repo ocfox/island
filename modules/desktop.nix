@@ -10,6 +10,7 @@
         fonts
         fcitx
         audio
+        earlyoom
 
         starship
         # dns
