@@ -17,17 +17,11 @@
         facter.reportPath = ./facter.json;
         kix.secrets.test = { };
         hardware.i2c.enable = true;
+        boot.initrd.kernelModules = [ "amdgpu" ];
         hardware.graphics.extraPackages = with pkgs; [
-          intel-media-driver
-          vpl-gpu-rt
-          level-zero
-          intel-compute-runtime
+          rocmPackages.clr.icd
         ];
-        boot.kernelParams = [
-          "i915.force_probe=56a1"
-          "i915.enable_guc=3"
-        ];
-        environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
+        environment.sessionVariables.LIBVA_DRIVER_NAME = "radeonsi";
         programs.nix-ld.enable = true;
         my.packages = with pkgs; [
           qbittorrent
