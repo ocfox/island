@@ -11,6 +11,7 @@
           boot
           facter
           steam
+          obs
           networkd
           desktop
         ];
@@ -18,6 +19,7 @@
         kix.secrets.test = { };
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
+        services.lact.enable = true;
         hardware.graphics.extraPackages = with pkgs; [
           rocmPackages.clr.icd
         ];
