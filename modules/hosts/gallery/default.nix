@@ -14,6 +14,7 @@
           obs
           networkd
           desktop
+          podman
         ];
         facter.reportPath = ./facter.json;
         kix.secrets.test = { };
