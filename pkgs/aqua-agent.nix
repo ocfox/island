@@ -14,8 +14,8 @@ ocamlPackages.buildDunePackage {
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "bd7fc5026eb3ed24c9258f3bbf4187c2d32e1a1b";
-    hash = "sha256-Kw0uQ8nkRgKGObha6n3cu0gBuXCnX7M1865Ksib6daA=";
+    rev = "33a81bc4f8264b330ecc0b8d41ade1f72e4d5a64";
+    hash = "sha256-eazg4B6NDPtOxqfTHR6bL52KdtjqnffP3Aj3U1bznLY=";
   };
 
   nativeBuildInputs = [
@@ -34,8 +34,10 @@ ocamlPackages.buildDunePackage {
     digestif
     eio
     eio_main
+    mirage-crypto-rng
     ptime
     ocaml_sqlite3
+    tls-eio
     yojson
   ];
 

@@ -18,6 +18,29 @@
         ];
         facter.reportPath = ./facter.json;
         kix.secrets.test = { };
+        kix.secrets.aqua-token = {
+          owner = config.my.name;
+          group = "users";
+          mode = "0400";
+        };
+        systemd.user.services.aqua-agent = {
+          description = "Aqua desktop agent";
+          wantedBy = [ "graphical-session.target" ];
+          partOf = [ "graphical-session.target" ];
+          serviceConfig = {
+            ExecStart = "${pkgs.local.aqua.agent}/bin/aqua-agent";
+            Environment = [
+              "AQUA_TOKEN_FILE=${config.kix.secrets.aqua-token.path}"
+              "AQUA_SERVER_HOST=aqua.s4r.in"
+              "AQUA_SERVER_PORT=443"
+              "AQUA_SERVER_TLS=true"
+              "AQUA_CA_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              "AQUA_IDLE_TIMEOUT_MS=30000"
+            ];
+            Restart = "on-failure";
+            RestartSec = 2;
+          };
+        };
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
         services.lact.enable = true;
