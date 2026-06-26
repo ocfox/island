@@ -59,6 +59,11 @@
         };
         kix.secrets.vault.mode = "640";
         kix.secrets.cf-dns.mode = "640";
+        kix.secrets.aqua-token = {
+          owner = "aqua";
+          group = "aqua";
+          mode = "0400";
+        };
         kix.secrets.mastodon-smtp = {
           mode = "640";
           owner = "mastodon";
@@ -75,6 +80,40 @@
             dnsProvider = "cloudflare";
             environmentFile = config.kix.secrets.cf-dns.path;
             group = "mastodon";
+          };
+          certs."aqua.s4r.in" = {
+            dnsProvider = "cloudflare";
+            environmentFile = config.kix.secrets.cf-dns.path;
+            group = "caddy";
+          };
+        };
+        users.groups.aqua = { };
+        users.users.aqua = {
+          isSystemUser = true;
+          group = "aqua";
+        };
+        systemd.services.aqua = {
+          description = "Aqua personal presence server";
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            User = "aqua";
+            Group = "aqua";
+            ExecStart = "${pkgs.local.aqua.server}/bin/aqua-server";
+            Environment = [
+              "AQUA_TOKEN_FILE=${config.kix.secrets.aqua-token.path}"
+              "AQUA_DB=/var/lib/aqua/aqua.db"
+            ];
+            StateDirectory = "aqua";
+            Restart = "on-failure";
+            RestartSec = "2s";
+            LogRateLimitIntervalSec = "1min";
+            LogRateLimitBurst = 20;
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectHome = true;
+            ProtectSystem = "strict";
           };
         };
         services.vaultwarden = {
@@ -112,6 +151,16 @@
               reverse_proxy localhost:8000 {
                 header_up X-Real-IP {remote_host}
               }
+            '';
+          };
+          virtualHosts."aqua.s4r.in" = {
+            useACMEHost = "aqua.s4r.in";
+            extraConfig = ''
+              handle /agent {
+                reverse_proxy 127.0.0.1:8765
+              }
+
+              respond "not found" 404
             '';
           };
           virtualHosts."mastodon.ocfox.me" = {

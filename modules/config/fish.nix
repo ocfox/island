@@ -13,7 +13,7 @@
         la = "eza --icons=auto --hyperlink --color=always --color-scale=all --color-scale-mode=fixed --git --git-repos -la";
         l = "eza --icons=auto --hyperlink --color=always --color-scale=all --color-scale-mode=fixed --git --git-repos -lh";
         swc = "sudo nixos-rebuild switch --flake /home/${config.my.name}/dev/den";
-        gssm = "gamescope -W 3840 -H 2160 -r 60 -f --adaptive-sync --mangoapp -e -- steam -gamepadui";
+        gssm = "gamescope -W 3840 -H 2160 -r 120 -f --adaptive-sync --cursor-scale-height 2160 --mangoapp -e -- steam -gamepadui";
         off = "poweroff";
         usd = "uwsm start default";
         g = "lazygit";

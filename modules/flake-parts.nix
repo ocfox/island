@@ -34,7 +34,12 @@
       withSystem prev.stdenv.hostPlatform.system (
         { config, ... }:
         {
-          local = config.packages;
+          local = config.packages // {
+            aqua = {
+              server = config.packages.aqua-server;
+              agent = config.packages.aqua-agent;
+            };
+          };
         }
       );
   };
