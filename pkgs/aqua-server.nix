@@ -9,8 +9,8 @@ ocamlPackages.buildDunePackage {
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "20a18289b29f7ca28ecb3a9b00b00af0b4e4841f";
-    hash = "sha256-45/oyghh8lHEOneZ3r/8d+RapkxRWa30RNDKmkUalt0=";
+    rev = "83551cca7dc9115595af09cf87eb41a8d0d9664a";
+    hash = "sha256-rc96LVyk0eUQaLxiXhvuQZOaYQ4WfNQOaqGGX9KQOKo=";
   };
 
   propagatedBuildInputs = with ocamlPackages; [

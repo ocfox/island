@@ -160,6 +160,10 @@
                 reverse_proxy 127.0.0.1:8765
               }
 
+              handle /stream {
+                reverse_proxy 127.0.0.1:8765
+              }
+
               respond "not found" 404
             '';
           };
