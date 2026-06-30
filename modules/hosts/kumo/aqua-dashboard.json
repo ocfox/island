@@ -1,0 +1,97 @@
+{
+  "uid": "aqua",
+  "title": "Aqua",
+  "tags": ["aqua"],
+  "timezone": "browser",
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Active time by app",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "expr": "increase(aqua_active_ms_total[$__range])",
+          "legendFormat": "{{app_id}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "showLegend": true, "displayMode": "table", "placement": "right", "calcs": ["sum"] }
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Top applications",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "expr": "sort_desc(increase(aqua_active_ms_total[$__range]))",
+          "instant": true,
+          "legendFormat": "{{app_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "align": "auto" } },
+        "overrides": []
+      },
+      "options": { "showHeader": true },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "valueLabel": "app_id" } },
+        { "id": "merge", "options": {} },
+        { "id": "sortBy", "options": { "fields": [{ "displayName": "Value", "desc": true }] } }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Focus vs active",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "expr": "sort_desc(increase(aqua_active_ms_total[$__range]))",
+          "instant": true,
+          "legendFormat": "{{app_id}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "expr": "sort_desc(increase(aqua_focus_ms_total[$__range]))",
+          "instant": true,
+          "legendFormat": "{{app_id}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "align": "auto" } },
+        "overrides": []
+      },
+      "options": { "showHeader": true },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "valueLabel": "app_id" } },
+        { "id": "merge", "options": {} }
+      ]
+    }
+  ]
+}

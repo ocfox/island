@@ -5,12 +5,11 @@
     stateVersion = "25.11";
     hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINGFOQAUa4fQiCbnD0lAoXI4HoYriPhCLAk/qOLS8IIC root@kumo";
     module =
-      { config, pkgs, ... }:
+      { config, lib, pkgs, ... }:
       {
         imports = with self.modules.nixos; [
           vps
           disko
-          aqua
         ];
 
         networking.nftables.ruleset = ''
@@ -188,6 +187,11 @@
               job_name = "caddy";
               static_configs = [ { targets = [ "127.0.0.1:2019" ]; } ];
             }
+            {
+              job_name = "aqua";
+              static_configs = [ { targets = [ "100.64.0.1:8765" ]; } ];
+              metrics_path = "/metrics";
+            }
           ];
         };
 
@@ -231,6 +235,18 @@
               type = "prometheus";
               url = "http://127.0.0.1:9090";
               isDefault = true;
+            }
+          ];
+          provision.dashboards.settings.providers = [
+            {
+              name = "Aqua";
+              type = "file";
+              updateIntervalSeconds = 30;
+              allowUiUpdates = true;
+              options.path = pkgs.runCommand "aqua-dashboards" { } ''
+                mkdir $out
+                cp ${./aqua-dashboard.json} $out/aqua.json
+              '';
             }
           ];
         };

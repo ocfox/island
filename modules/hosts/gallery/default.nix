@@ -15,12 +15,17 @@
           networkd
           desktop
           lact
+          aqua
         ];
         facter.reportPath = ./facter.json;
         kix.secrets.test = { };
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
         services.lact.enable = true;
+        services.aqua = {
+          enable = true;
+          serveAddr = "0.0.0.0";
+        };
         hardware.graphics.extraPackages = with pkgs; [
           rocmPackages.clr.icd
         ];
