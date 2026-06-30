@@ -37,6 +37,7 @@
               "AQUA_DB=%h/.local/share/aqua/aqua.db"
               "AQUA_AGENT_ID=%H"
               "AQUA_IDLE_TIMEOUT_MS=${toString cfg.idleTimeoutMs}"
+              "AQUA_VM_URL=http://100.64.0.3:9090/api/v1/import"
             ];
             ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.local/share/aqua";
             ExecStart = "${pkgs.local.aqua}/bin/aqua agent watch";

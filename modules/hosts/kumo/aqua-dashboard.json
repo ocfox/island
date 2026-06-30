@@ -4,7 +4,7 @@
   "tags": ["aqua"],
   "timezone": "browser",
   "schemaVersion": 41,
-  "version": 1,
+  "version": 2,
   "refresh": "5m",
   "time": { "from": "now-24h", "to": "now" },
   "panels": [
@@ -18,7 +18,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-          "expr": "increase(aqua_active_ms_total[$__range])",
+          "expr": "aqua_active_ms{agent_id=\"gallery\"}",
           "legendFormat": "{{app_id}}",
           "instant": false
         }
@@ -39,59 +39,78 @@
       "id": 2,
       "type": "table",
       "title": "Top applications",
-      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 10 },
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-          "expr": "sort_desc(increase(aqua_active_ms_total[$__range]))",
+          "expr": "sort_desc(sum by (app_id) (aqua_active_ms{agent_id=\"gallery\"}))",
           "instant": true,
           "legendFormat": "{{app_id}}"
         }
       ],
       "fieldConfig": {
         "defaults": { "unit": "ms", "custom": { "align": "auto" } },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "app_id" },
+            "properties": [{ "id": "custom.width", "value": 300 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "displayName", "value": "Active time" },
+              { "id": "custom.displayMode", "value": "basic" }
+            ]
+          }
+        ]
       },
       "options": { "showHeader": true },
       "transformations": [
         { "id": "labelsToFields", "options": { "valueLabel": "app_id" } },
         { "id": "merge", "options": {} },
-        { "id": "sortBy", "options": { "fields": [{ "displayName": "Value", "desc": true }] } }
+        { "id": "sortBy", "options": { "fields": [{ "displayName": "Active time", "desc": true }] } }
       ]
     },
     {
       "id": 3,
-      "type": "table",
-      "title": "Focus vs active",
-      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 10 },
+      "type": "state-timeline",
+      "title": "Activity timeline",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-          "expr": "sort_desc(increase(aqua_active_ms_total[$__range]))",
-          "instant": true,
-          "legendFormat": "{{app_id}}"
-        },
-        {
-          "refId": "B",
-          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-          "expr": "sort_desc(increase(aqua_focus_ms_total[$__range]))",
-          "instant": true,
-          "legendFormat": "{{app_id}}"
+          "expr": "aqua_online{agent_id=\"gallery\"}",
+          "legendFormat": "{{state}}",
+          "instant": false
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "ms", "custom": { "align": "auto" } },
+        "defaults": {
+          "custom": { "lineWidth": 0, "fillOpacity": 70 },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "idle": { "text": "idle", "color": "#6c757d", "index": 0 }
+              }
+            }
+          ],
+          "color": { "mode": "palette-classic" }
+        },
         "overrides": []
       },
-      "options": { "showHeader": true },
-      "transformations": [
-        { "id": "labelsToFields", "options": { "valueLabel": "app_id" } },
-        { "id": "merge", "options": {} }
-      ]
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
     }
   ]
 }

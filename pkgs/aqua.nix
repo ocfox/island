@@ -18,8 +18,8 @@ stdenv.mkDerivation {
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "6f05383b360089f760d5abc18563dfdfaf6014d4";
-    hash = "sha256-3eB18G74KEKiL8xkvKWLZ/MpvQwQ5JFidl39f1GgJyk=";
+    rev = "ed24e796a289bcfbf3d61bd174695554013af8f8";
+    hash = "sha256-fTYXEiHrqH9sOTQ8LlkZj5+VlSME8Uz4eC+egWv1+hM=";
   };
 
   nativeBuildInputs = [

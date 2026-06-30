@@ -32,6 +32,9 @@
               tcp dport 22 accept
               tcp dport { 80, 443 } accept
               udp dport 443 accept
+
+              # allow aqua agent (gallery) to push metrics to VictoriaMetrics
+              ip saddr 100.64.0.1 tcp dport 9090 accept
             }
 
             chain forward {
@@ -163,7 +166,7 @@
 
         services.victoriametrics = {
           enable = true;
-          listenAddress = "127.0.0.1:9090";
+          listenAddress = "0.0.0.0:9090";
           retentionPeriod = "60d";
         };
 
