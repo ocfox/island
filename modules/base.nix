@@ -12,6 +12,7 @@
         shell
       ];
       services = {
+        tailscale.enable = true;
         pcscd.enable = true;
         openssh = {
           enable = true;
