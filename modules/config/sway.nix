@@ -93,6 +93,7 @@
         bindsym Mod4+d move scratchpad
         bindsym Mod4+e layout toggle split
         bindsym Mod4+f fullscreen toggle
+        bindsym Mod4+g exec env DISPLAY=:0 steam
         bindsym Mod4+h focus left
         bindsym Mod4+i scratchpad show
         bindsym Mod4+j focus down
@@ -175,6 +176,9 @@
         ];
         config."sway/config" = pkgs.writeText "sway-config" config;
       };
+
+      systemd.packages = [ pkgs.local.xwayland-satellite ];
+      systemd.user.targets.graphical-session.wants = [ "xwayland-satellite.service" ];
 
       environment.sessionVariables = {
         NIXOS_OZONE_WL = "1";
