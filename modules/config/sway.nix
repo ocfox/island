@@ -113,7 +113,7 @@
           scale 3
         }
 
-        output "DP-2" {
+        output "DP-3" {
           bg ${ed} fill
           mode 3840x2160
           position 0 0

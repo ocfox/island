@@ -18,6 +18,7 @@
           aqua
         ];
         facter.reportPath = ./facter.json;
+        hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
