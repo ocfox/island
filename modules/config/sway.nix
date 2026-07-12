@@ -206,5 +206,9 @@
       };
 
       services.oo7.enable = true;
+      # oo7-daemon delegates unlock/confirm dialogs to an external prompter
+      # (org.gnome.keyring.SystemPrompter). gcr provides gcr-prompter for it;
+      # without this, unlocking a locked collection hangs with no UI.
+      services.dbus.packages = [ pkgs.gcr ];
     };
 }
