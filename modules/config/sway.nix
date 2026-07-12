@@ -205,7 +205,6 @@
         };
       };
 
-      services.gnome.gnome-keyring.enable = true;
-      security.pam.services.login.enableGnomeKeyring = true;
+      services.oo7.enable = true;
     };
 }
