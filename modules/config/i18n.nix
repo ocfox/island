@@ -37,8 +37,7 @@
           defaultFonts = {
             emoji = [ "Noto Color Emoji" ];
             sansSerif = [
-              "Inter"
-              "Sarasa Gothic J"
+              "Noto Sans"
             ];
             serif = [
               "Noto Serif CJK JP"
@@ -51,7 +50,7 @@
         };
 
         packages = with pkgs; [
-          inter
+          noto-fonts
           sarasa-gothic
           noto-fonts-cjk-serif
           noto-fonts-color-emoji
