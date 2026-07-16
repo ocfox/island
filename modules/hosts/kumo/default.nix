@@ -62,6 +62,7 @@
         };
         kix.secrets.vault.mode = "640";
         kix.secrets.cf-dns.mode = "640";
+        kix.secrets.restic-b2.mode = "640";
         kix.secrets.mastodon-smtp = {
           mode = "640";
           owner = "mastodon";
@@ -70,6 +71,11 @@
           acceptTerms = true;
           defaults.email = "civet@ocfox.me";
           certs."vault.s4r.in" = {
+            dnsProvider = "cloudflare";
+            environmentFile = config.kix.secrets.cf-dns.path;
+            group = "caddy";
+          };
+          certs."m.s4r.in" = {
             dnsProvider = "cloudflare";
             environmentFile = config.kix.secrets.cf-dns.path;
             group = "caddy";
@@ -107,6 +113,52 @@
           extraConfig.WEB_DOMAIN = "mastodon.ocfox.me";
           extraConfig.SINGLE_USER_MODE = "true";
         };
+        services.memos = {
+          enable = true;
+          settings = {
+            MEMOS_MODE = "prod";
+            MEMOS_ADDR = "127.0.0.1";
+            MEMOS_PORT = "5230";
+            MEMOS_DATA = "/var/lib/memos/";
+            MEMOS_DRIVER = "sqlite";
+            MEMOS_INSTANCE_URL = "https://m.s4r.in";
+          };
+        };
+        # Offsite backup to Backblaze B2 via its S3-compatible API (free tier).
+        # Backs up memos + vaultwarden data and a logical dump of the mastodon
+        # Postgres DB. Mastodon media (mostly cached remote files, auto-refetched)
+        # is intentionally excluded. The restic-b2 secret must contain
+        # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD.
+        services.restic.backups.b2 = {
+          initialize = true;
+          # S3 path uses the bucket NAME (not the bucket id).
+          repository = "s3:https://s3.us-west-004.backblazeb2.com/kumoback";
+          environmentFile = config.kix.secrets.restic-b2.path;
+          paths = [
+            "/var/lib/memos"
+            "/var/lib/vaultwarden"
+            "/var/backup/postgres"
+          ];
+          backupPrepareCommand = ''
+            install -d -m 0700 /var/backup/postgres
+            ${pkgs.util-linux}/bin/runuser -u postgres -- \
+              ${config.services.postgresql.package}/bin/pg_dump -Fc mastodon \
+              -f /var/backup/postgres/mastodon.dump
+          '';
+          backupCleanupCommand = ''
+            rm -f /var/backup/postgres/mastodon.dump
+          '';
+          timerConfig = {
+            OnCalendar = "daily";
+            RandomizedDelaySec = "1h";
+            Persistent = true;
+          };
+          pruneOpts = [
+            "--keep-daily 7"
+            "--keep-weekly 4"
+            "--keep-monthly 6"
+          ];
+        };
         services.caddy = {
           enable = true;
           virtualHosts."vault.s4r.in" = {
@@ -115,6 +167,12 @@
               reverse_proxy localhost:8000 {
                 header_up X-Real-IP {remote_host}
               }
+            '';
+          };
+          virtualHosts."m.s4r.in" = {
+            useACMEHost = "m.s4r.in";
+            extraConfig = ''
+              reverse_proxy 127.0.0.1:5230
             '';
           };
           virtualHosts."mastodon.ocfox.me" = {
