@@ -205,10 +205,14 @@
         };
       };
 
-      services.oo7.enable = true;
-      # oo7-daemon delegates unlock/confirm dialogs to an external prompter
-      # (org.gnome.keyring.SystemPrompter). gcr provides gcr-prompter for it;
-      # without this, unlocking a locked collection hangs with no UI.
+      # oo7's pam_oo7 (0.6.0) forks during pam_open_session to unlock the keyring
+      # and collides with util-linux login's child reaping (waitpid -> ECHILD),
+      # which tears down the freshly-opened tty session -> instant auto-logout.
+      # Use gnome-keyring instead: its PAM module unlocks the keyring on login
+      # without that fork/wait collision.
+      services.gnome.gnome-keyring.enable = true;
+      security.pam.services.login.enableGnomeKeyring = true;
+      # gcr provides the gcr-prompter used for unlock/confirm dialogs.
       services.dbus.packages = [ pkgs.gcr ];
     };
 }
