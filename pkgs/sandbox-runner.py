@@ -155,6 +155,11 @@ def heavy_worker_loop() -> None:
 def process_job(job: dict) -> None:
     job_dir = JOBS_DIR / job["job_id"]
     job_dir.mkdir(parents=True, exist_ok=True)
+    # DynamicUser=yes picks a random unprivileged uid we can't know ahead of
+    # time, and this directory is owned by root (the sandbox-runner process) --
+    # without this the sandboxed code can read /work/input but can't write
+    # /work/output.* (PermissionError)
+    job_dir.chmod(0o777)
     try:
         input_path = job_dir / "input"
         urllib.request.urlretrieve(job["input_url"], input_path)  # noqa: S310 - fixed https CDN
