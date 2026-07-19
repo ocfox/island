@@ -10,6 +10,7 @@
         imports = with self.modules.nixos; [
           vps
           disko
+          sandbox-runner
         ];
 
         networking.nftables.ruleset = ''
@@ -63,6 +64,12 @@
         kix.secrets.vault.mode = "640";
         kix.secrets.cf-dns.mode = "640";
         kix.secrets.restic-b2.mode = "640";
+        kix.secrets.sandbox-api-key.mode = "640";
+
+        services.sandbox-runner = {
+          enable = true;
+          apiKeyFile = config.kix.secrets.sandbox-api-key.path;
+        };
         kix.secrets.mastodon-smtp = {
           mode = "640";
           owner = "mastodon";
@@ -76,6 +83,11 @@
             group = "caddy";
           };
           certs."m.s4r.in" = {
+            dnsProvider = "cloudflare";
+            environmentFile = config.kix.secrets.cf-dns.path;
+            group = "caddy";
+          };
+          certs."exec.s4r.in" = {
             dnsProvider = "cloudflare";
             environmentFile = config.kix.secrets.cf-dns.path;
             group = "caddy";
@@ -173,6 +185,12 @@
             useACMEHost = "m.s4r.in";
             extraConfig = ''
               reverse_proxy 127.0.0.1:5230
+            '';
+          };
+          virtualHosts."exec.s4r.in" = {
+            useACMEHost = "exec.s4r.in";
+            extraConfig = ''
+              reverse_proxy 127.0.0.1:${toString config.services.sandbox-runner.listenPort}
             '';
           };
           virtualHosts."mastodon.ocfox.me" = {
