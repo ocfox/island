@@ -23,6 +23,8 @@
           qt6Packages.fcitx5-configtool
         ];
       };
+
+      environment.variables.GTK_IM_MODULE = "fcitx";
     };
 
   flake.modules.nixos.fonts =
