@@ -1,3 +1,4 @@
+{ inputs, ... }:
 {
   flake.modules.nixos.sway =
     {
@@ -7,6 +8,7 @@
       ...
     }:
     let
+      vertere = inputs.vertere.packages.${pkgs.stdenv.hostPlatform.system}.default;
       bg = pkgs.fetchurl {
         url = "https://image.tmdb.org/t/p/original/iLis4CUhZ5cHmMEqEBYF7XcQl27.jpg";
         name = "sawa";
@@ -73,6 +75,8 @@
         bindsym Mod4+Shift+c reload
         bindsym Mod4+Shift+d exec ${lib.getExe' pkgs.wireplumber "wpctl"} set-volume @DEFAULT_AUDIO_SINK@ 5%-
         bindsym Mod4+Shift+e exec ${lib.getExe pkgs.local.powermenu}
+        bindsym Mod4+t exec ${lib.getExe vertere} shot
+        bindsym Mod4+y exec ${lib.getExe vertere} sel
         bindsym Mod4+Shift+h move left
         bindsym Mod4+Shift+j move down
         bindsym Mod4+Shift+k move up
@@ -168,6 +172,7 @@
           fastfetch
           swaybg
           wl-clipboard
+          vertere
           wireplumber
           swayimg
           sway-contrib.grimshot
