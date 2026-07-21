@@ -403,11 +403,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1784557789,
-        "narHash": "sha256-vg+EkeN1qorxGMwZs+ThzlbSzNCwf4LsY3WVCpv65lc=",
+        "lastModified": 1784569624,
+        "narHash": "sha256-5SaYXIW1PepwnwmRuvqyiJipN6pspE9YygzUP+DhrVk=",
         "owner": "ocfox",
         "repo": "vertere",
-        "rev": "4309ec55dc42006e3d425fd6433b4c918401e414",
+        "rev": "4d9059f0cf83280c7a0b30d99d9881efb8171cf9",
         "type": "github"
       },
       "original": {
