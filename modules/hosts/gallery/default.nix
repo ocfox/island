@@ -16,7 +16,7 @@
           desktop
           lact
           aqua
-          llama-cpp
+          # llama-cpp
         ]) ++ [ inputs.vertere.nixosModules.default ];
         facter.reportPath = ./facter.json;
         hardware.keyboard.qmk.enable = true;
@@ -43,6 +43,7 @@
         ];
         environment.sessionVariables.LIBVA_DRIVER_NAME = "radeonsi";
         programs.nix-ld.enable = true;
+        programs.fuse.enable = true;
         my.packages = with pkgs; [
           qbittorrent
           vesktop

@@ -62,9 +62,11 @@
             "realtime"
             "dialout"
             "libvirtd"
+
           ];
           packages = config.my.packages;
         };
+
 
         users = {
           mutableUsers = false;
