@@ -33,7 +33,6 @@ in
       nixosSystem {
         inherit pkgs;
         system = host.system;
-        specialArgs = { inherit inputs; };
         modules =
           let
             nixos = config.flake.modules.nixos;
@@ -48,8 +47,8 @@ in
             }
           ]
           ++ optional (host.hostKey != null) {
-            imports = [ inputs.kix.nixosModules.default ];
-            kix.settings.hostPubkey = host.hostKey;
+            imports = [ config.flake.kix.nixosModule ];
+            kix.hostPubkey = host.hostKey;
           }
           ++ optional (nixos ? ${name}) nixos.${name};
       }
