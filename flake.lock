@@ -148,11 +148,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1785586156,
-        "narHash": "sha256-xwrBfryGMWKVPaxKgtxQSZ2rMN/uDHOdmKOObcKM2Yg=",
+        "lastModified": 1785594787,
+        "narHash": "sha256-oQTG/SIXdjiJ1apj0lo/sTyyjTba7eR++nnmsvu3byc=",
         "owner": "ocfox",
         "repo": "kix",
-        "rev": "fc360d62b6d6c1e5afde5d0c636c1b04670cc7c5",
+        "rev": "627f0429e20f527cd9569348972923d92b571aed",
         "type": "github"
       },
       "original": {
