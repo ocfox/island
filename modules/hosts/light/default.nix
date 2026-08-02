@@ -30,6 +30,13 @@
         ];
         zramSwap.enable = true;
 
+        # AWS hands out IPv6 over stateful DHCPv6, which never yielded an
+        # address here -- only the link-local. The address is pinned to the
+        # ENI, so write it in; the default route still comes from the RA.
+        systemd.network.networks."10-eth0".address = [
+          "2406:da14:1200:e700:6a1a:86de:a0e8:f695/128"
+        ];
+
         boot.loader.grub.enable = false;
         boot.loader.systemd-boot.enable = true;
         boot.loader.efi = {
