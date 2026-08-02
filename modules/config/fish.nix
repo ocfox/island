@@ -40,13 +40,11 @@
       '';
 
       interactiveShellInit = ''
-        eval "$(${lib.getExe pkgs.atuin} init fish)"
         ${lib.getExe pkgs.zoxide} init fish | source
       '';
 
       fishPackages = with pkgs; [
         eza
-        atuin
         zoxide
         just
         lazygit
