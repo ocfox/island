@@ -57,6 +57,19 @@
           settingsFile = config.kix.secrets.light-xray.path;
         };
 
+        kix.secrets.light-wg = { };
+        networking.wireguard.interfaces.wg0 = {
+          ips = [ "10.99.0.1/24" ];
+          listenPort = 51820;
+          privateKeyFile = config.kix.secrets.light-wg.path;
+          peers = [
+            {
+              publicKey = "4tfvxSxmkz69IABNAlWhyd80r/KabsdtotA7FTyXtxE=";
+              allowedIPs = [ "10.99.0.2/32" ];
+            }
+          ];
+        };
+
         # IPv4 exit for the IPv6-only kumo: WireGuard over IPv6, masqueraded
         # onto the Lightsail address. A single /128 leaves no prefix for a
         # NAT64 range, and given a tunnel anyway NAT44 is the simpler half --
