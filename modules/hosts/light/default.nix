@@ -3,9 +3,9 @@
   hosts.light = {
     system = "x86_64-linux";
     stateVersion = "26.11";
-    # hostKey comes after the first deploy, from /var/lib/ssh/*.pub.
+    hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXqpaUrrGe+JsXLzdgxkX10J8jzVXLss0JfpQVO/bOX root@nixos";
     module =
-      { lib, ... }:
+      { config, lib, ... }:
       {
         imports = with self.modules.nixos; [ vps ];
 
@@ -51,6 +51,12 @@
         nix.settings.nix-path = lib.mkForce [ ];
         system.tools.nixos-rebuild.enable = false;
 
+        kix.secrets.light-xray = { };
+        services.xray = {
+          enable = true;
+          settingsFile = config.kix.secrets.light-xray.path;
+        };
+
         # IPv4 exit for the IPv6-only kumo: WireGuard over IPv6, masqueraded
         # onto the Lightsail address. A single /128 leaves no prefix for a
         # NAT64 range, and given a tunnel anyway NAT44 is the simpler half --
@@ -80,6 +86,7 @@
               ip protocol icmp icmp type echo-request accept
 
               tcp dport 22 accept
+              tcp dport 443 accept
               udp dport 51820 accept
             }
 
