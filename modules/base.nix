@@ -8,7 +8,6 @@
         nix
         i18n
         git
-        helix
         shell
       ];
       services = {

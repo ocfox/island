@@ -42,9 +42,6 @@
         # man is not gated by documentation.enable.
         documentation.man.enable = false;
         services.pcscd.enable = lib.mkForce false;
-        # helix's languages.toml inlines every language server's store path.
-        my.packages = lib.mkForce [ ];
-        my.config = lib.mkForce { };
         nix.extraOptions = lib.mkForce ''
           experimental-features = nix-command flakes ca-derivations
         '';
