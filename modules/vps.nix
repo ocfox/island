@@ -14,20 +14,26 @@
         "sr_mod"
         "virtio_blk"
         "ahci"
+        "nvme"
         "xen_blkfront"
         "vmw_pvscsi"
       ];
       boot.initrd.kernelModules = [ ];
-      boot.kernelModules = [ "kvm-amd" ];
+      boot.kernelModules = [ ];
       boot.extraModulePackages = [ ];
       boot.loader.grub = {
-        enable = true;
+        enable = lib.mkDefault true;
         device = lib.mkDefault "nodev";
       };
       boot.kernelParams = [
         "console=ttyS0,115200n8"
         "console=tty0"
       ];
+
+      # base is shaped for workstations: no VM loads firmware blobs, and
+      # "all" builds every locale glibc has.
+      hardware.enableRedistributableFirmware = lib.mkForce false;
+      i18n.extraLocales = lib.mkForce [ ];
 
       networking = {
         dhcpcd.enable = false;

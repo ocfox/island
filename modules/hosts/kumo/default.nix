@@ -61,6 +61,62 @@
           };
           routes = [ { Gateway = "2401:b60:e0fd:2b::1"; } ];
         };
+
+        # This host is IPv6-only and the DC has no NAT64 (64:ff9b::/96 is not
+        # routed here), so IPv4-only destinations -- Backblaze B2, IPv4-only
+        # fediverse instances, whatever sandboxed code reaches for -- go
+        # through nat64.net's gateways.
+        #
+        # DNS64 synthesis is done locally rather than by pointing at
+        # nat64.net's resolvers: DNS stays encrypted, and DNS availability
+        # stops depending on them (only the data path does). It also keeps us
+        # honest about the rule that *every* configured resolver must do DNS64
+        # -- here there is only one, and it always synthesizes.
+        #
+        # Both prefixes are advertised so Happy Eyeballs can fail over if one
+        # gateway is down.
+        services.resolved.enable = false;
+        networking.nameservers = lib.mkForce [ "::1" ];
+        services.dnsproxy = {
+          enable = true;
+          flags = [
+            "--cache"
+            "--cache-optimistic"
+            "--edns"
+            "--dns64"
+            "--dns64-prefix=2a00:1098:2b::/96"
+            "--dns64-prefix=2a00:1098:2c::/96"
+          ];
+          settings = {
+            # Must be reachable over IPv6; used only to resolve the upstream's
+            # own hostname.
+            bootstrap = [
+              "2606:4700:4700::1111"
+              "2001:4860:4860::8888"
+            ];
+            listen-addrs = [
+              "::1"
+              "127.0.0.1"
+            ];
+            listen-ports = [ 53 ];
+            upstream-mode = "fastest_addr";
+            upstream = [
+              "tls://one.one.one.one"
+              "tls://dns.google"
+            ];
+          };
+        };
+
+        # 464XLAT: DNS64 above only helps name-based lookups. clatd adds a
+        # local IPv4 stack translated onto the same gateway, so hardcoded v4
+        # literals and IPv4-only sockets work too -- notably inside
+        # sandbox-runner, which executes arbitrary code in the host netns.
+        services.clatd = {
+          enable = true;
+          # Could be discovered via RFC 7050, but pin it so the CLAT and the
+          # first DNS64 prefix above always agree.
+          settings.plat-prefix = "2a00:1098:2b::/96";
+        };
         kix.secrets.vault.mode = "640";
         kix.secrets.cf-dns.mode = "640";
         kix.secrets.restic-b2.mode = "640";
