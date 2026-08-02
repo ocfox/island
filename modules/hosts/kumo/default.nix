@@ -153,9 +153,11 @@
           ];
           backupPrepareCommand = ''
             install -d -m 0700 /var/backup/postgres
+            # pg_dump runs as postgres, but the output file is opened by the
+            # root shell via redirection so the dir can stay root-owned 0700.
             ${pkgs.util-linux}/bin/runuser -u postgres -- \
               ${config.services.postgresql.package}/bin/pg_dump -Fc mastodon \
-              -f /var/backup/postgres/mastodon.dump
+              > /var/backup/postgres/mastodon.dump
           '';
           backupCleanupCommand = ''
             rm -f /var/backup/postgres/mastodon.dump
