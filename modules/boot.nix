@@ -5,6 +5,13 @@
       boot.loader = {
         timeout = 30;
         limine.enable = true;
+        limine.maxGenerations = 10;
+        limine.extraEntries = ''
+          /Windows
+              comment: Windows Boot Manager (nvme0n1p4)
+              protocol: efi_chainload
+              path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+        '';
         efi.canTouchEfiVariables = true;
       };
 
