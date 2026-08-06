@@ -10,8 +10,7 @@ pkgs.writeShellScriptBin "screen-recorder-toggle" ''
     region="$(${lib.getExe pkgs.slurp} -f "%wx%h+%x+%y")"
     [ -n "$region" ] || exit 0
     ${lib.getExe' pkgs.gpu-screen-recorder "gpu-screen-recorder"} \
-      -w region \
-      -region "$region" \
+      -w "$region" \
       -o "$HOME/Videos/record/$(date +'recording_%Y-%m-%d-%H%M%S.mp4')"
   else
     ${pkgs.procps}/bin/pkill --signal SIGINT -f "$recorder"
