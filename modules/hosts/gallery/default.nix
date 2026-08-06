@@ -16,7 +16,6 @@
           desktop
           lact
           aqua
-          # llama-cpp
         ]) ++ [ inputs.vertere.nixosModules.default ];
         facter.reportPath = ./facter.json;
         hardware.keyboard.qmk.enable = true;

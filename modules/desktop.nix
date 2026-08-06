@@ -14,7 +14,6 @@
         earlyoom
 
         starship
-        # dns
 
         foot
         mako
