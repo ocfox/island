@@ -1,3 +1,7 @@
+{ config, ... }:
+let
+  inherit (config.flake.modules.nixos) starship;
+in
 {
   flake.modules.nixos.shell =
     {
@@ -47,11 +51,12 @@
         eza
         zoxide
         just
-        lazygit
         systemctl-tui
       ];
     in
     {
+      imports = [ starship ];
+
       users.users.${config.my.name}.shell = pkgs.fish;
 
       programs.fzf.keybindings = true;

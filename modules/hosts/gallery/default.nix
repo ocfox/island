@@ -7,16 +7,18 @@
     module =
       { pkgs, config, ... }:
       {
-        imports = (with self.modules.nixos; [
-          boot
-          facter
-          steam
-          obs
-          networkd
-          desktop
-          lact
-          aqua
-        ]) ++ [ inputs.vertere.nixosModules.default ];
+        imports =
+          (with self.modules.nixos; [
+            boot
+            facter
+            steam
+            obs
+            networkd
+            desktop
+            lact
+            aqua
+          ])
+          ++ [ inputs.vertere.nixosModules.default ];
         facter.reportPath = ./facter.json;
         hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };

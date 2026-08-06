@@ -3,8 +3,11 @@
   flake.modules.nixos.desktop =
     { pkgs, ... }:
     {
-      programs.sway.enable = true;
-      environment.systemPackages = [ pkgs.yazi ];
+      my.packages = with pkgs; [
+        gh
+        yazi
+      ];
+
       imports = with config.flake.modules.nixos; [
         helix
         xdg
@@ -12,8 +15,7 @@
         fcitx
         audio
         earlyoom
-
-        starship
+        fetch
 
         foot
         mako

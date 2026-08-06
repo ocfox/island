@@ -2,10 +2,9 @@
   flake.modules.nixos.xdg =
     { pkgs, lib, ... }:
     {
-      environment.systemPackages = [
-        pkgs.nautilus
-        pkgs.sioyek
-      ];
+      environment.systemPackages = [ pkgs.nautilus ];
+
+      my.packages = [ pkgs.sioyek ];
       services.gnome.sushi.enable = true;
       xdg = {
         terminal-exec.enable = true;

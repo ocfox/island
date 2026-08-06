@@ -1,7 +1,12 @@
 { ... }:
 {
   flake.modules.nixos.aqua =
-    { config, lib, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       cfg = config.services.aqua;
     in
@@ -23,6 +28,11 @@
           type = lib.types.int;
           default = 30000;
         };
+
+        vmUrl = lib.mkOption {
+          type = lib.types.str;
+          default = "http://100.64.0.3:9090/api/v1/import";
+        };
       };
 
       config = lib.mkIf cfg.enable {
@@ -37,7 +47,7 @@
               "AQUA_DB=%h/.local/share/aqua/aqua.db"
               "AQUA_AGENT_ID=%H"
               "AQUA_IDLE_TIMEOUT_MS=${toString cfg.idleTimeoutMs}"
-              "AQUA_VM_URL=http://100.64.0.3:9090/api/v1/import"
+              "AQUA_VM_URL=${cfg.vmUrl}"
             ];
             ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.local/share/aqua";
             ExecStart = "${pkgs.local.aqua}/bin/aqua agent watch";

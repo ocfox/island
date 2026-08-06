@@ -1,7 +1,12 @@
 { ... }:
 {
   flake.modules.nixos.sandbox-runner =
-    { config, lib, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       cfg = config.services.sandbox-runner;
       sandboxPython = pkgs.python3.withPackages (

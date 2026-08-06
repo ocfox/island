@@ -5,6 +5,7 @@
     {
       imports = with config.flake.modules.nixos; [
         users
+        dotfiles
         nix
         i18n
         git
@@ -26,7 +27,6 @@
       };
       hardware.enableRedistributableFirmware = true;
       environment.systemPackages = with pkgs; [
-        git
         curl
         bind
         htop
