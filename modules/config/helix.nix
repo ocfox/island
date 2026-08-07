@@ -73,6 +73,10 @@
                 name = "typescript-language-server";
                 except-features = [ "format" ];
               }
+              {
+                name = "deno-lsp";
+                except-features = [ "format" ];
+              }
             ];
             formatter = {
               command = "${lib.getExe pkgs.biome}";
@@ -99,6 +103,10 @@
                 name = "typescript-language-server";
                 except-features = [ "format" ];
               }
+              {
+                name = "deno-lsp";
+                except-features = [ "format" ];
+              }
             ];
             formatter = {
               command = "${lib.getExe pkgs.biome}";
@@ -106,32 +114,6 @@
                 "format"
                 "--stdin-file-path"
                 "file.tsx"
-              ];
-            };
-          }
-          {
-            name = "deno";
-            language-id = "deno";
-            scope = "source.ts";
-            injection-regex = "^(deno)$";
-            file-types = [ ];
-            shebangs = [ "deno" ];
-            roots = [
-              "deno.json"
-              "deno.jsonc"
-            ];
-            auto-format = true;
-            language-servers = [
-              {
-                name = "deno-lsp";
-                except-features = [ "format" ];
-              }
-            ];
-            formatter = {
-              command = "deno";
-              args = [
-                "fmt"
-                "-"
               ];
             };
           }
@@ -193,6 +175,7 @@
       my.packages = [
         pkgs.helix
         pkgs.biome
+        pkgs.deno
       ];
 
       environment.variables.EDITOR = "hx";

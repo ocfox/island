@@ -23,6 +23,8 @@
         description = "Mako Notification Daemon";
         wantedBy = [ "graphical-session.target" ];
         partOf = [ "graphical-session.target" ];
+        after = [ "graphical-session.target" ];
+        requisite = [ "graphical-session.target" ];
         serviceConfig = {
           ExecStart = "${pkgs.mako}/bin/mako";
           Restart = "on-failure";

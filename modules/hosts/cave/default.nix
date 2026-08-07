@@ -24,7 +24,7 @@
           "net.ipv6.conf.all.forwarding" = 1;
           "net.ipv4.conf.all.forwarding" = 1;
         };
-        documentation.man.generateCaches = false;
+        documentation.man.cache.enable = false;
         services = {
           resolved.enable = false;
           dnsproxy = {

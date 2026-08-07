@@ -9,7 +9,7 @@
 
         command_timeout = 1000;
 
-        format = "$username$hostname$directory$git_branch$git_commit$git_status$nix_shell$cmd_duration$line_break$python$character";
+        format = "$username$hostname$directory$git_branch$git_commit$git_status$nix_shell$cmd_duration$time$line_break$python$character";
 
         directory.style = "cyan";
 
@@ -80,10 +80,9 @@
 
         time = {
           disabled = false;
-          format = "$time($style) ";
+          format = "[$time]($style) ";
           time_format = "%T";
           style = "bold yellow";
-          utc_time_offset = "-5";
         };
 
         nix_shell = {
