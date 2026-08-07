@@ -68,6 +68,7 @@
               "AQUA_HTTP_ADDR=${cfg.serveAddr}"
               "AQUA_HTTP_PORT=${toString cfg.servePort}"
             ];
+            ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.local/share/aqua";
             ExecStart = "${pkgs.local.aqua}/bin/aqua serve";
             Restart = "on-failure";
             RestartSec = "3s";

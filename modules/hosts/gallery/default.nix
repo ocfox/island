@@ -37,7 +37,8 @@
         services.lact.enable = true;
         services.aqua = {
           enable = true;
-          serveAddr = "0.0.0.0";
+          # tailscale only: the API is unauthenticated and the host firewall is off
+          serveAddr = "100.64.0.1";
         };
         hardware.graphics.extraPackages = with pkgs; [
           rocmPackages.clr.icd
