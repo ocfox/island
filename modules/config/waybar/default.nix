@@ -61,18 +61,20 @@
             "disable-scroll" = true;
             format = "{icon}";
             "all-outputs" = true;
-            "format-icons" = {
-              "1" = "い";
-              "2" = "ろ";
-              "3" = "は";
-              "4" = "に";
-              "5" = "ほ";
-              "6" = "へ";
-              "7" = "と";
-              "8" = "ち";
-              "9" = "り";
-              "10" = "ぬ";
-            };
+            "format-icons" = lib.listToAttrs (
+              lib.imap1 (i: icon: lib.nameValuePair (toString i) icon) [
+                "い"
+                "ろ"
+                "は"
+                "に"
+                "ほ"
+                "へ"
+                "と"
+                "ち"
+                "り"
+                "ぬ"
+              ]
+            );
           };
           idle_inhibitor = {
             format = "{icon}";
