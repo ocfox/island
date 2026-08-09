@@ -19,7 +19,6 @@
 
         foot
         mako
-        waybar
         gtk
         mpv
         sway

@@ -15,6 +15,7 @@
             obs
             networkd
             desktop
+            waybar
             lact
             aqua
           ])

@@ -30,10 +30,10 @@ stdenv.mkDerivation {
 
   patches = [
     # Keep the 10 bits per channel that a capture of a 10-bit output provides
-    ./grim-10bpc-png.patch
+    ./10bpc-png.patch
     # Convert captures of HDR outputs to SDR, so they are not written as
     # PQ-encoded BT.2020 samples that every viewer reads as plain sRGB
-    ./grim-hdr-tonemap.patch
+    ./hdr-tonemap.patch
   ];
 
   mesonFlags = [ (lib.mesonBool "werror" false) ];
