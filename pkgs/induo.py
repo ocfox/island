@@ -1,28 +1,33 @@
-"""induo -- replace a running VPS with NixOS by writing a disk image over it.
+"""induo -- replace a running machine with NixOS by writing a disk image over it.
 
-Two commands' worth of work, driven interactively:
+Three steps, each needing one more flag than the last:
 
-  probe    read the live network and disk layout off the target, before
-           destroying it, and write modules/hosts/<name>/default.nix
-  install  build the image locally, kexec the target into a small RAM stage,
-           and stream the image onto its disk over ssh
+  induo TARGET                          read the live network and disk layout
+  induo TARGET --disk DEV               write the host file, kexec into a RAM
+                                        stage, stop there
+  induo TARGET --disk DEV --write       overwrite the disk and reboot
 
-The target never runs Nix. Everything up to the write is reversible: the RAM
-stage does not touch the disk, and its watchdog reboots back into the original
-system if nothing happens.
+The target never runs Nix; the image is built here and streamed over ssh.
+Everything before --write is reversible: the RAM stage does not touch the disk,
+and its watchdog reboots back into the original system on its own.
 """
 
+import argparse
 import ipaddress
 import json
 import os
 import socket
 import subprocess
-import sys
 import time
 from pathlib import Path
 
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+err = Console(stderr=True)
+
 STAGE = os.environ.get("INDUO_STAGE", "@stage@")
-STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "induo/hosts.json"
 REMOTE_DIR = "/var/tmp/induo"
 STAGE_PORT = 2222
 STATE_VERSION = "25.11"
@@ -37,8 +42,8 @@ SSH_STAGE = SSH_BASE + [
 
 
 def fail(msg):
-    print(f"induo: {msg}", file=sys.stderr)
-    sys.exit(1)
+    err.print(f"[bold red]induo:[/] {msg}")
+    raise SystemExit(1)
 
 
 class Cpio:
@@ -104,21 +109,21 @@ def scp(target, local, remote, port=22, stage=False):
         fail(f"scp {local}: {proc.stderr.strip()}")
 
 
-def wait_port(host, port, timeout):
+def wait_port(host, port, timeout, what):
     deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        for family in (socket.AF_INET6, socket.AF_INET):
-            try:
-                with socket.socket(family, socket.SOCK_STREAM) as s:
-                    s.settimeout(4)
-                    s.connect((host, port))
-                    return True
-            except OSError:
-                pass
-        left = int(deadline - time.monotonic())
-        print(f"\r  waiting for {host}:{port} ({left}s left) ", end="", flush=True)
-        time.sleep(3)
-    print()
+    with console.status("") as status:
+        while time.monotonic() < deadline:
+            for family in (socket.AF_INET6, socket.AF_INET):
+                try:
+                    with socket.socket(family, socket.SOCK_STREAM) as s:
+                        s.settimeout(4)
+                        s.connect((host, port))
+                        return True
+                except OSError:
+                    pass
+            left = int(deadline - time.monotonic())
+            status.update(f"waiting for {what} on {host}:{port} [dim]({left}s left)[/]")
+            time.sleep(3)
     return False
 
 
@@ -265,16 +270,21 @@ def net_script(p):
         "}",
         "",
     ]
+    seen = {}
     for version in (4, 6):
         stack = p.get(f"v{version}")
         if not stack:
             continue
-        var = f"dev{version}"
+        var = seen.get(stack["mac"])
+        if var is None:
+            var = seen[stack["mac"]] = f"dev{version}"
+            lines += [
+                f'{var}=$(wait_dev {stack["mac"]})',
+                f'ip link set "${var}" up',
+            ]
         ip6 = "ip -6" if version == 6 else "ip"
         extra = " nodad" if version == 6 else ""
         lines += [
-            f'{var}=$(wait_dev {stack["mac"]})',
-            f'ip link set "${var}" up',
             f'{ip6} addr add {stack["address"]} dev "${var}"{extra}',
             # onlink is harmless when the gateway is on-link and required when
             # it is not, as with /32 layouts or an fe80:: gateway.
@@ -297,19 +307,19 @@ def render_host(name, p, keys):
             suffix = " GatewayOnLink = true;" if onlink else ""
             routes.append(f'          {{ Gateway = "{p[v]["gateway"]}";{suffix} }}')
         body += [
-            '        systemd.network.networks."10-eth0" = {',
-            f'          networkConfig.DHCP = "{dhcp}";',
-            f"          address = [ {addresses} ];",
-            "          routes = [",
+            '      systemd.network.networks."10-eth0" = {',
+            f'        networkConfig.DHCP = "{dhcp}";',
+            f"        address = [ {addresses} ];",
+            "        routes = [",
             *routes,
-            "          ];",
-            "        };",
+            "        ];",
+            "      };",
         ]
 
     body += [
-        "        users.users.root.openssh.authorizedKeys.keys = [",
-        *[f'          "{k}"' for k in keys],
-        "        ];",
+        "      users.users.root.openssh.authorizedKeys.keys = [",
+        *[f'        "{k}"' for k in keys],
+        "      ];",
     ]
 
     return "\n".join(
@@ -340,17 +350,6 @@ def gateway_on_link(address, gateway):
         return False
 
 
-def load_state():
-    if STATE.exists():
-        return json.loads(STATE.read_text())
-    return {}
-
-
-def save_state(state):
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
-
-
 def find_repo():
     for d in [Path.cwd(), *Path.cwd().parents]:
         if (d / "flake.nix").exists() and (d / "modules/hosts").is_dir():
@@ -362,210 +361,160 @@ def gib(n):
     return f"{n / 1024**3:.1f} GiB"
 
 
-def ask(prompt, default=""):
-    suffix = f" [{default}]" if default else ""
-    return input(f"{prompt}{suffix}: ").strip() or default
-
-
-def confirm(prompt):
-    return input(f"{prompt} [y/N]: ").strip().lower() in ("y", "yes")
-
-
-def local_keys():
-    return sorted(
-        p.read_text().strip()
-        for p in (Path.home() / ".ssh").glob("*.pub")
-        if p.is_file() and p.read_text().strip()
-    )
+def local_keys(paths):
+    if paths:
+        files = [Path(p) for p in paths]
+    else:
+        files = sorted((Path.home() / ".ssh").glob("*.pub"))
+    keys = [f.read_text().strip() for f in files if f.is_file() and f.read_text().strip()]
+    if not keys:
+        fail("no public keys found, the new system would be unreachable")
+    return keys
 
 
 def show_probe(p):
-    print(f"  firmware  {p['firmware']}")
-    print(f"  arch      {p['arch']}")
-    print(f"  memory    {p['mem_kb'] // 1024} MiB")
+    table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+    table.add_column(style="dim")
+    table.add_column()
+    table.add_row("firmware", p["firmware"])
+    table.add_row("arch", p["arch"])
+    table.add_row("memory", f"{p['mem_kb'] // 1024} MiB")
     for version in (4, 6):
         stack = p.get(f"v{version}")
         if stack:
-            kind = "dhcp/ra" if stack["dynamic"] else "static"
-            print(f"  IPv{version}      {stack['address']} via {stack['gateway']} on {stack['dev']} ({kind})")
+            kind = "dhcp/ra" if stack["dynamic"] else "[yellow]static[/]"
+            table.add_row(
+                f"IPv{version}",
+                f"{stack['address']} via {stack['gateway']} on {stack['dev']} ({kind})",
+            )
     for dev, size in p["disks"]:
-        mark = "  <- current root" if dev == p["root_disk"] else ""
-        print(f"  disk      {dev} {gib(size)}{mark}")
-
-
-def new_host(repo, state):
-    target = ask("ssh target (root@host)")
-    if not target:
-        return
-    name = ask("name", target.split("@")[-1].split(".")[0])
-    if not name.isidentifier():
-        fail(f"{name!r} is not usable as a nix attribute name")
-
-    print("probing...")
-    p = probe(target)
-    show_probe(p)
-
-    if not p.get("v4") and not p.get("v6"):
-        fail("could not determine any usable address, refusing to continue")
-
-    disk = ask("\noverwrite which disk", p["root_disk"])
-    if not any(disk == d for d, _ in p["disks"]):
-        fail(f"{disk} is not one of the disks reported by the target")
-
-    keys = local_keys()
-    if not keys:
-        fail("no public keys in ~/.ssh, the new system would be unreachable")
-    print("\nauthorized keys for the new system:")
-    for i, k in enumerate(keys, 1):
-        print(f"  {i}) {k[:70]}")
-    chosen = ask("pick (space separated)", "1")
-    try:
-        keys = [keys[int(i) - 1] for i in chosen.split()]
-    except (ValueError, IndexError):
-        fail("invalid selection")
-
-    path = repo / "modules/hosts" / name / "default.nix"
-    if path.exists() and not confirm(f"\n{path} exists, overwrite?"):
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_host(name, p, keys))
-    print(f"wrote {path.relative_to(repo)}")
-
-    state[name] = {"target": target, "disk": disk, "keys": keys}
-    save_state(state)
-    print(f"remembered {name} -> {target} {disk}")
-
-    if confirm("\ninstall now?"):
-        install(repo, name, state)
+        mark = " [dim]<- current root[/]" if dev == p["root_disk"] else ""
+        table.add_row("disk", f"{dev} {gib(size)}{mark}")
+    console.print(table)
 
 
 def build_image(repo, name):
     attr = f".#nixosConfigurations.{name}.config.system.build.diskImage"
-    print(f"building {attr}")
+    console.print(f"building [dim]{attr}[/]")
+    # stderr stays on the terminal so nix's own progress output is visible;
+    # only the store path comes back on stdout.
     proc = subprocess.run(
         ["nix", "build", "--no-link", "--print-out-paths", attr],
         cwd=repo,
         text=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
     )
     if proc.returncode != 0:
-        fail(f"nix build failed:\n{proc.stderr.strip()}")
+        fail("nix build failed")
     out = Path(proc.stdout.strip().splitlines()[-1])
     image = out / "nixos.img.zst"
-    size = int((out / "size").read_text().strip())
     if not image.exists():
         fail(f"{image} missing, did make-disk-image change its output name?")
-    return image, size
+    return image, int((out / "size").read_text().strip())
 
 
-def install(repo, name, state):
-    entry = state[name]
-    target, disk = entry["target"], entry["disk"]
-    host = target.split("@")[-1]
-
-    # Never trust the remembered device: a reprovisioned VPS can rename it.
-    print(f"checking {target}")
-    p = probe(target)
-    if not any(disk == d for d, _ in p["disks"]):
-        print(f"induo: {disk} no longer exists on {target}", file=sys.stderr)
-        show_probe(p)
-        fail("re-probe this host before installing")
-    if p["root_disk"] and p["root_disk"] != disk:
-        print(f"warning: target now boots off {p['root_disk']}, not {disk}")
-        if not confirm("continue anyway?"):
-            return
-
-    image, size = build_image(repo, name)
-    disk_size = next(s for d, s in p["disks"] if d == disk)
-    if disk_size < size:
-        fail(f"{disk} is {gib(disk_size)}, image needs {gib(size)}")
-    print(f"image {gib(size)} -> {disk} {gib(disk_size)}")
-
+def stage_initrd(name, p, keys):
     config = Cpio()
     config.directory("induo")
     config.file("induo/net.sh", net_script(p), 0o755)
     config.directory("root")
     config.directory("root/.ssh")
-    config.file("root/.ssh/authorized_keys", "\n".join(entry["keys"]) + "\n", 0o600)
+    config.file("root/.ssh/authorized_keys", "\n".join(keys) + "\n", 0o600)
 
-    initrd = Path(f"/tmp/induo-{name}.initrd")
-    initrd.write_bytes(config.bytes() + Path(f"{STAGE}/initrd").read_bytes())
+    path = Path(f"/tmp/induo-{name}.initrd")
+    path.write_bytes(config.bytes() + Path(f"{STAGE}/initrd").read_bytes())
+    return path
 
-    print(f"uploading stage to {target}:{REMOTE_DIR}")
-    ssh(target, f"mkdir -p {REMOTE_DIR}")
-    scp(target, f"{STAGE}/kernel", f"{REMOTE_DIR}/kernel")
-    scp(target, initrd, f"{REMOTE_DIR}/initrd")
-    scp(target, f"{STAGE}/kexec", f"{REMOTE_DIR}/kexec")
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="induo",
+        description="Replace a running machine with NixOS by writing a disk image over it.",
+        epilog="Without --disk nothing is touched. Without --write the disk is not touched.",
+    )
+    ap.add_argument("target", help="ssh target of the machine to replace, e.g. root@1.2.3.4")
+    ap.add_argument("--name", help="host name, defaults to the first label of the target")
+    ap.add_argument("--disk", help="whole disk to overwrite, e.g. /dev/vda")
+    ap.add_argument("--key", action="append", help="public key file, repeatable (default ~/.ssh/*.pub)")
+    ap.add_argument("--regen", action="store_true", help="rewrite the host file even if it exists")
+    ap.add_argument("--write", action="store_true", help="actually overwrite the disk")
+    ap.add_argument("--timeout", type=int, default=1800, help="stage watchdog, seconds (default 1800)")
+    args = ap.parse_args()
+
+    repo = find_repo()
+    target = args.target
+    host = target.split("@")[-1]
+    name = args.name or host.split(".")[0].replace("-", "_")
+    if not name.isidentifier():
+        fail(f"{name!r} is not usable as a nix attribute name, pass --name")
+
+    with console.status(f"probing {target}"):
+        p = probe(target)
+    show_probe(p)
+
+    if not p.get("v4") and not p.get("v6"):
+        fail("could not determine any usable address, refusing to continue")
+
+    if not args.disk:
+        hint = p["root_disk"] or (p["disks"][0][0] if p["disks"] else "/dev/vda")
+        console.print(f"\nnothing was touched. to continue: [bold]induo {target} --disk {hint}[/]")
+        return
+    if not any(args.disk == d for d, _ in p["disks"]):
+        fail(f"{args.disk} is not one of the disks reported by {target}")
+
+    path = repo / "modules/hosts" / name / "default.nix"
+    if args.regen or not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(render_host(name, p, local_keys(args.key)))
+        console.print(f"wrote [bold]{path.relative_to(repo)}[/]")
+    else:
+        console.print(f"keeping [bold]{path.relative_to(repo)}[/] [dim](--regen to rewrite)[/]")
+
+    image, size = build_image(repo, name)
+    disk_size = next(s for d, s in p["disks"] if d == args.disk)
+    if disk_size < size:
+        fail(f"{args.disk} is {gib(disk_size)}, image needs {gib(size)}")
+    console.print(f"image {gib(size)} -> {args.disk} {gib(disk_size)}")
+
+    initrd = stage_initrd(name, p, local_keys(args.key))
+    with console.status(f"uploading stage to {target}:{REMOTE_DIR}"):
+        ssh(target, f"mkdir -p {REMOTE_DIR}")
+        scp(target, f"{STAGE}/kernel", f"{REMOTE_DIR}/kernel")
+        scp(target, initrd, f"{REMOTE_DIR}/initrd")
+        scp(target, f"{STAGE}/kexec", f"{REMOTE_DIR}/kexec")
     initrd.unlink()
 
-    if not confirm(f"\nkexec {target} into the induo stage?"):
-        return
-
-    cmdline = "console=tty0 console=ttyS0,115200 induo.timeout=1800"
+    cmdline = f"console=tty0 console=ttyS0,115200 induo.timeout={args.timeout}"
     load = f"{REMOTE_DIR}/kexec -l {REMOTE_DIR}/kernel --initrd={REMOTE_DIR}/initrd --command-line='{cmdline}'"
     ssh(target, f"chmod +x {REMOTE_DIR}/kexec && {load}")
-    print("kexec loaded, jumping")
     ssh_detach(target, f"sleep 1; {REMOTE_DIR}/kexec -e")
 
-    if not wait_port(host, STAGE_PORT, 300):
+    if not wait_port(host, STAGE_PORT, 300, "the induo stage"):
         fail("stage never came up; the watchdog will reboot it into the old system")
-    print("\nstage is up")
+    console.print(f"stage is up: [dim]ssh -p {STAGE_PORT} {target}[/]")
 
-    print("writing image")
-    argv = ssh_argv(target, STAGE_PORT, stage=True) + [target, f"induo-write {disk} {size}"]
+    if not args.write:
+        console.print(
+            f"\ndisk untouched. add [bold]--write[/] to overwrite {args.disk}, "
+            f"or wait {args.timeout}s for the watchdog to reboot into the old system"
+        )
+        return
+
+    console.print(f"writing {args.disk}")
+    argv = ssh_argv(target, STAGE_PORT, stage=True) + [target, f"induo-write {args.disk} {size}"]
     with image.open("rb") as f:
         if subprocess.run(argv, stdin=f).returncode != 0:
             fail("write failed; the stage is still up, fix and retry")
 
     ssh_detach(target, "sync; reboot -f", port=STAGE_PORT, stage=True)
-    print("rebooting into NixOS")
-    if wait_port(host, 22, 600):
-        print(f"\n{name} is up: ssh {target}")
+    if wait_port(host, 22, 600, "NixOS"):
+        console.print(f"[bold green]{name} is up:[/] ssh {target}")
     else:
-        print("\nno ssh yet; check the provider console")
-
-
-def host_menu(repo, name, state):
-    entry = state[name]
-    print(f"\n{name}  {entry['target']}  {entry['disk']}")
-    print("  1) install")
-    print("  2) re-probe")
-    print("  3) forget")
-    choice = ask("action", "1")
-    if choice == "1":
-        install(repo, name, state)
-    elif choice == "2":
-        p = probe(entry["target"])
-        show_probe(p)
-        path = repo / "modules/hosts" / name / "default.nix"
-        if confirm(f"rewrite {path.relative_to(repo)}?"):
-            path.write_text(render_host(name, p, entry["keys"]))
-    elif choice == "3":
-        del state[name]
-        save_state(state)
-
-
-def main():
-    repo = find_repo()
-    state = load_state()
-    while True:
-        names = sorted(state)
-        print()
-        for i, name in enumerate(names, 1):
-            print(f"  {i}) {name:10} {state[name]['target']:24} {state[name]['disk']}")
-        print("  n) new host")
-        print("  q) quit")
-        choice = ask("\n>")
-        if choice == "q":
-            return
-        if choice == "n":
-            new_host(repo, state)
-        elif choice.isdigit() and 1 <= int(choice) <= len(names):
-            host_menu(repo, names[int(choice) - 1], state)
+        console.print("[yellow]no ssh yet[/]; check the provider console")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print()
+        console.print()

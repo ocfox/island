@@ -13,6 +13,20 @@
           sandbox-runner
         ];
 
+        # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
+        # BIOS stage has a partition of its own to live in. Confirm the index
+        # with `sgdisk -p /dev/sda` before switching: a failing bios-install
+        # does not fail activation, it just leaves the old boot code in place.
+        boot.loader.limine = {
+          enable = true;
+          efiSupport = true;
+          efiInstallAsRemovable = true;
+          biosSupport = true;
+          biosDevice = "/dev/sda";
+          partitionIndex = 1;
+        };
+        boot.loader.efi.canTouchEfiVariables = false;
+
         networking.nftables.ruleset = ''
           table inet filter {
             chain input {

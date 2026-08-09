@@ -7,6 +7,15 @@
       { pkgs, ... }:
       {
         imports = with self.modules.nixos; [ vps ];
+
+        # Installed before induo existed: the MBR belongs to whatever set this
+        # machine up, NixOS only rewrites grub.cfg. Reinstall with induo to get
+        # a layout NixOS actually owns.
+        boot.loader.grub = {
+          enable = true;
+          device = "nodev";
+        };
+
         fileSystems."/" = {
           device = "/dev/disk/by-uuid/580fd907-a2af-478d-adf1-7a70edcca3be";
           fsType = "ext4";

@@ -21,10 +21,6 @@
       boot.initrd.kernelModules = [ ];
       boot.kernelModules = [ ];
       boot.extraModulePackages = [ ];
-      boot.loader.grub = {
-        enable = lib.mkDefault true;
-        device = lib.mkDefault "nodev";
-      };
       boot.kernelParams = [
         "console=ttyS0,115200n8"
         "console=tty0"
@@ -40,7 +36,8 @@
         firewall.enable = false;
         useNetworkd = true;
         usePredictableInterfaceNames = false;
-        nameservers = [
+        # Some providers only route DNS to their own resolvers.
+        nameservers = lib.mkDefault [
           "1.1.1.1"
           "8.8.8.8"
           "2606:4700:4700::1111"
@@ -54,9 +51,11 @@
       systemd.network = {
         enable = true;
         networks."10-eth0" = {
+          # Hosts with a static lease override DHCP and add address/routes here;
+          # induo generates exactly that block.
           matchConfig.Name = "eth0";
           networkConfig.DHCP = lib.mkDefault "yes";
-          linkConfig.RequiredForOnline = "routable";
+          linkConfig.RequiredForOnline = lib.mkDefault "routable";
         };
       };
     };

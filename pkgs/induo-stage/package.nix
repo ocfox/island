@@ -90,9 +90,10 @@ let
     ];
   };
 in
-runCommand "induo-stage" { meta.description = "Kernel, initrd and kexec for the induo RAM stage"; } ''
-  mkdir -p $out
-  ln -s ${kernel}/${kernel.target} $out/kernel
-  ln -s ${initrd}/initrd $out/initrd
-  ln -s ${pkgsStatic.kexec-tools}/bin/kexec $out/kexec
-''
+runCommand "induo-stage" { meta.description = "Kernel, initrd and kexec for the induo RAM stage"; }
+  ''
+    mkdir -p $out
+    ln -s ${kernel}/${kernel.target} $out/kernel
+    ln -s ${initrd}/initrd $out/initrd
+    ln -s ${pkgsStatic.kexec-tools}/bin/kexec $out/kexec
+  ''
