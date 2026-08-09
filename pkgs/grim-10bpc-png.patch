@@ -1,0 +1,207 @@
+From 0fe423293f6cdf190436ded4e1ac4663d9b0fd09 Mon Sep 17 00:00:00 2001
+From: sarin <me@s4r.in>
+Date: Sun, 9 Aug 2026 10:40:33 +0800
+Subject: [PATCH] Preserve 10 bits per channel when writing PNG
+
+Compositors hand out 10-bit capture buffers when the output is rendered
+at that depth, but render() always composited into PIXMAN_a8r8g8b8 and
+write_to_png_stream() only knew how to emit 8-bit rows, so the extra
+precision was discarded.
+
+Pick PIXMAN_a2r10g10b10 for the common image when a capture provides it,
+and widen those samples to a 16-bit PNG. PNG is the only output format
+that can carry them: libjpeg is 8-bit only, so render() is told whether
+the caller can use the extra depth and otherwise behaves exactly as
+before.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/render.h |  4 +++-
+ main.c           |  4 +++-
+ render.c         | 32 ++++++++++++++++++++++++--
+ write_png.c      | 60 +++++++++++++++++++++++++++++++++++++++++++-----
+ 4 files changed, 90 insertions(+), 10 deletions(-)
+
+diff --git a/include/render.h b/include/render.h
+index 462e30c..e4d1e0f 100644
+--- a/include/render.h
++++ b/include/render.h
+@@ -9,7 +9,9 @@
+ bool is_format_supported(enum wl_shm_format fmt);
+ uint32_t get_format_min_stride(enum wl_shm_format fmt, uint32_t width);
+ 
++// allow_10bpc should only be set if the caller can make use of more than 8 bits
++// per channel; otherwise the captures are flattened to PIXMAN_a8r8g8b8.
+ pixman_image_t *render(struct grim_state *state, struct grim_box *geometry,
+-	double scale);
++	double scale, bool allow_10bpc);
+ 
+ #endif
+diff --git a/main.c b/main.c
+index fd81d07..210b4cf 100644
+--- a/main.c
++++ b/main.c
+@@ -861,7 +861,9 @@ int main(int argc, char *argv[]) {
+ 		get_capture_layout_extents(&state, geometry);
+ 	}
+ 
+-	pixman_image_t *image = render(&state, geometry, scale);
++	// PNG is the only output format that can carry more than 8 bits per channel
++	pixman_image_t *image = render(&state, geometry, scale,
++		output_filetype == GRIM_FILETYPE_PNG);
+ 	if (image == NULL) {
+ 		return EXIT_FAILURE;
+ 	}
+diff --git a/render.c b/render.c
+index 1f8f929..123184d 100644
+--- a/render.c
++++ b/render.c
+@@ -93,6 +93,18 @@ bool is_format_supported(enum wl_shm_format fmt) {
+ 	return get_pixman_format(fmt) != 0;
+ }
+ 
++static bool is_format_10bpc(pixman_format_code_t fmt) {
++	switch (fmt) {
++	case PIXMAN_a2r10g10b10:
++	case PIXMAN_x2r10g10b10:
++	case PIXMAN_a2b10g10r10:
++	case PIXMAN_x2b10g10r10:
++		return true;
++	default:
++		return false;
++	}
++}
++
+ uint32_t get_format_min_stride(enum wl_shm_format fmt, uint32_t width) {
+ 	uint32_t bits_per_pixel = PIXMAN_FORMAT_BPP(get_pixman_format(fmt));
+ 	return ((width * bits_per_pixel + 0x1f) >> 5) * sizeof(uint32_t);
+@@ -141,10 +153,26 @@ static void compute_composite_region(const struct pixman_f_transform *out2com,
+ }
+ 
+ pixman_image_t *render(struct grim_state *state, struct grim_box *geometry,
+-		double scale) {
++		double scale, bool allow_10bpc) {
+ 	int common_width = geometry->width * scale;
+ 	int common_height = geometry->height * scale;
+-	pixman_image_t *common_image = pixman_image_create_bits(PIXMAN_a8r8g8b8,
++
++	// Keep the extra precision if any of the captures provides it. A capture
++	// buffer is only 10-bit if the compositor renders that output at that
++	// depth, so this costs nothing in the common 8-bit case.
++	pixman_format_code_t common_format = PIXMAN_a8r8g8b8;
++	if (allow_10bpc) {
++		struct grim_capture *capture;
++		wl_list_for_each(capture, &state->captures, link) {
++			if (capture->buffer != NULL && is_format_10bpc(
++					get_pixman_format(capture->buffer->format))) {
++				common_format = PIXMAN_a2r10g10b10;
++				break;
++			}
++		}
++	}
++
++	pixman_image_t *common_image = pixman_image_create_bits(common_format,
+ 		common_width, common_height, NULL, 0);
+ 	if (!common_image) {
+ 		fprintf(stderr, "failed to create image with size: %d x %d\n",
+diff --git a/write_png.c b/write_png.c
+index 9e36b42..20c0216 100644
+--- a/write_png.c
++++ b/write_png.c
+@@ -35,10 +35,52 @@ static void pack_row32(uint8_t *restrict row_out, const uint32_t *restrict row_i
+ 	}
+ }
+ 
++// Widens a 10-bit sample to 16 bits by bit replication, which is exact at both
++// ends of the range, and stores it big-endian as PNG requires.
++static void put_be16_from10(uint8_t **row_out, uint32_t v10) {
++	uint16_t v16 = (uint16_t)((v10 << 6) | (v10 >> 4));
++	*(*row_out)++ = v16 >> 8;
++	*(*row_out)++ = v16 & 0xff;
++}
++
++static void pack_row32_10bpc(uint8_t *row_out, const uint32_t *restrict row_in,
++		size_t width, bool fully_opaque) {
++	for (size_t x = 0; x < width; x++) {
++		uint32_t b = (row_in[x] >>  0) & 0x3ff;
++		uint32_t g = (row_in[x] >> 10) & 0x3ff;
++		uint32_t r = (row_in[x] >> 20) & 0x3ff;
++		uint32_t a = (row_in[x] >> 30) & 0x3;
++
++		// Alpha only has two bits here, spread it over the same 10-bit
++		// range as the colors so both can be handled uniformly
++		uint32_t a10 = a * 341;
++
++		if (!fully_opaque && (a10 != 0 && a10 != 1023)) {
++			uint32_t inv = (1023u << 16) / a10;
++			uint32_t sr = r * inv;
++			r = sr > (1023u << 16) ? 1023 : (sr >> 16);
++			uint32_t sg = g * inv;
++			g = sg > (1023u << 16) ? 1023 : (sg >> 16);
++			uint32_t sb = b * inv;
++			b = sb > (1023u << 16) ? 1023 : (sb >> 16);
++		}
++
++		put_be16_from10(&row_out, r);
++		put_be16_from10(&row_out, g);
++		put_be16_from10(&row_out, b);
++		if (!fully_opaque) {
++			put_be16_from10(&row_out, a10);
++		}
++	}
++}
++
+ int write_to_png_stream(pixman_image_t *image, FILE *stream,
+ 		int comp_level) {
+ 	pixman_format_code_t format = pixman_image_get_format(image);
+-	assert(format == PIXMAN_a8r8g8b8 || format == PIXMAN_x8r8g8b8);
++	assert(format == PIXMAN_a8r8g8b8 || format == PIXMAN_x8r8g8b8 ||
++		format == PIXMAN_a2r10g10b10);
++
++	bool deep = format == PIXMAN_a2r10g10b10;
+ 
+ 	int width = pixman_image_get_width(image);
+ 	int height = pixman_image_get_height(image);
+@@ -46,20 +88,22 @@ int write_to_png_stream(pixman_image_t *image, FILE *stream,
+ 	const unsigned char *data = (unsigned char *)pixman_image_get_data(image);
+ 
+ 	bool fully_opaque = true;
+-	if (format == PIXMAN_a8r8g8b8) {
++	if (format == PIXMAN_a8r8g8b8 || deep) {
++		uint32_t opaque_alpha = deep ? 0x3 : 0xff;
++		int alpha_shift = deep ? 30 : 24;
+ 		for (int y = 0; y < height; y++) {
+ 			const uint32_t *row = (const uint32_t *)(data + y * stride);
+ 			for (int x = 0; x < width; x++) {
+-				if ((row[x] >> 24) != 0xff) {
++				if ((row[x] >> alpha_shift) != opaque_alpha) {
+ 					fully_opaque = false;
+ 				}
+ 			}
+ 		}
+ 	}
+ 	int color_type = fully_opaque ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGBA;
+-	int bit_depth = 8;
++	int bit_depth = deep ? 16 : 8;
+ 
+-	uint8_t *tmp_row = calloc(width, 4);
++	uint8_t *tmp_row = calloc(width, deep ? 8 : 4);
+ 	if (!tmp_row) {
+ 		fprintf(stderr, "failed to allocate temp row\n");
+ 		return -1;
+@@ -105,7 +149,11 @@ int write_to_png_stream(pixman_image_t *image, FILE *stream,
+ 
+ 	for (int y = 0; y < height; y++) {
+ 		const uint32_t *row = (const uint32_t *)(data + y * stride);
+-		pack_row32(tmp_row, row, width, fully_opaque);
++		if (deep) {
++			pack_row32_10bpc(tmp_row, row, width, fully_opaque);
++		} else {
++			pack_row32(tmp_row, row, width, fully_opaque);
++		}
+ 		png_write_row(png, tmp_row);
+ 	}
+ 
+-- 
+2.55.0
+

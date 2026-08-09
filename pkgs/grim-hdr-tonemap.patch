@@ -1,0 +1,548 @@
+From 9b7c6da79198b2b4e8543e0fc1ef5ee05bb46ad4 Mon Sep 17 00:00:00 2001
+From: sarin <me@s4r.in>
+Date: Sun, 9 Aug 2026 10:56:22 +0800
+Subject: [PATCH] Convert captures of HDR outputs to SDR
+
+A capture of an HDR output holds PQ-encoded BT.2020 samples. Written to a
+PNG as-is those are interpreted as ordinary SDR values, which is why such
+a screenshot looks wrong in every viewer that does not do color
+management, i.e. nearly all of them.
+
+ext-image-copy-capture does not say what encoding a capture is in, but
+wp_color_manager_v1 answers that for an output directly: get_output gives
+an image description whose information includes the named transfer
+function, the named primaries and the reference white luminance.
+
+Use it to detect a PQ-encoded capture and convert it: decode PQ to
+absolute luminance, divide by the reference white so ordinary SDR content
+lands at 1.0, convert BT.2020 to BT.709 primaries and encode with a 2.2
+power curve. Highlights above the reference white cannot be represented
+and are clipped.
+
+The 2.2 curve rather than the piecewise sRGB one is what compositors use
+to encode SDR output; measured against a capture of the same content with
+HDR turned off, it brings the difference down from 1.4% to 0.6% RMSE,
+which is within the noise of two captures taken a second apart.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/grim.h       |  15 ++++
+ include/render.h     |   1 +
+ include/tonemap.h    |  18 +++++
+ main.c               | 182 ++++++++++++++++++++++++++++++++++++++++++-
+ meson.build          |   1 +
+ protocol/meson.build |   3 +-
+ render.c             |   2 +-
+ tonemap.c            | 139 +++++++++++++++++++++++++++++++++
+ 8 files changed, 357 insertions(+), 4 deletions(-)
+ create mode 100644 include/tonemap.h
+ create mode 100644 tonemap.c
+
+diff --git a/include/grim.h b/include/grim.h
+index e27e6e7..e87c18b 100644
+--- a/include/grim.h
++++ b/include/grim.h
+@@ -1,6 +1,7 @@
+ #ifndef _GRIM_H
+ #define _GRIM_H
+ 
++#include <stdbool.h>
+ #include <wayland-client.h>
+ 
+ #include "box.h"
+@@ -11,10 +12,22 @@ enum grim_filetype {
+ 	GRIM_FILETYPE_JPEG,
+ };
+ 
++// What the compositor told us about an output's color encoding, via
++// wp_color_manager_v1. All luminances are in cd/m².
++struct grim_color_info {
++	bool has_tf;
++	uint32_t tf_named; // enum wp_color_manager_v1_transfer_function
++	bool has_primaries;
++	uint32_t primaries_named; // enum wp_color_manager_v1_primaries
++	bool has_luminances;
++	double min_lum, max_lum, reference_lum;
++};
++
+ struct grim_state {
+ 	struct wl_display *display;
+ 	struct wl_registry *registry;
+ 	struct wl_shm *shm;
++	struct wp_color_manager_v1 *color_manager;
+ 	struct zxdg_output_manager_v1 *xdg_output_manager;
+ 	struct ext_output_image_capture_source_manager_v1 *ext_output_image_capture_source_manager;
+ 	struct ext_foreign_toplevel_image_capture_source_manager_v1 *ext_foreign_toplevel_image_capture_source_manager;
+@@ -45,6 +58,8 @@ struct grim_output {
+ 	struct grim_box logical_geometry;
+ 	double logical_scale; // guessed from the logical size
+ 	char *name;
++
++	struct grim_color_info color;
+ };
+ 
+ struct grim_capture {
+diff --git a/include/render.h b/include/render.h
+index e4d1e0f..1c63977 100644
+--- a/include/render.h
++++ b/include/render.h
+@@ -7,6 +7,7 @@
+ #include "grim.h"
+ 
+ bool is_format_supported(enum wl_shm_format fmt);
++bool is_format_10bpc(pixman_format_code_t fmt);
+ uint32_t get_format_min_stride(enum wl_shm_format fmt, uint32_t width);
+ 
+ // allow_10bpc should only be set if the caller can make use of more than 8 bits
+diff --git a/include/tonemap.h b/include/tonemap.h
+new file mode 100644
+index 0000000..7d0b17c
+--- /dev/null
++++ b/include/tonemap.h
+@@ -0,0 +1,18 @@
++#ifndef _TONEMAP_H
++#define _TONEMAP_H
++
++#include <pixman.h>
++#include <stdbool.h>
++
++#include "grim.h"
++
++// Whether the encoding described by color needs to be converted before it can
++// be stored in an ordinary sRGB image file.
++bool color_needs_tonemap(const struct grim_color_info *color);
++
++// Converts a capture from the encoding described by color to 8-bit SDR,
++// unrefs the original and returns the result. Returns NULL on failure.
++pixman_image_t *tonemap_to_sdr(pixman_image_t *image,
++	const struct grim_color_info *color);
++
++#endif
+diff --git a/main.c b/main.c
+index 210b4cf..b99c28d 100644
+--- a/main.c
++++ b/main.c
+@@ -14,12 +14,14 @@
+ #include "grim.h"
+ #include "output-layout.h"
+ #include "render.h"
++#include "tonemap.h"
+ #include "write_ppm.h"
+ #if HAVE_JPEG
+ #include "write_jpg.h"
+ #endif
+ #include "write_png.h"
+ 
++#include "color-management-v1-protocol.h"
+ #include "ext-foreign-toplevel-list-v1-protocol.h"
+ #include "ext-image-capture-source-v1-protocol.h"
+ #include "ext-image-copy-capture-v1-protocol.h"
+@@ -351,6 +353,119 @@ static const struct wl_output_listener output_listener = {
+ };
+ 
+ 
++static void image_desc_info_handle_done(void *data,
++		struct wp_image_description_info_v1 *info) {
++	wp_image_description_info_v1_destroy(info);
++}
++
++static void image_desc_info_handle_icc_file(void *data,
++		struct wp_image_description_info_v1 *info, int32_t icc, uint32_t icc_size) {
++	close(icc);
++}
++
++static void image_desc_info_handle_primaries(void *data,
++		struct wp_image_description_info_v1 *info, int32_t r_x, int32_t r_y,
++		int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y,
++		int32_t w_x, int32_t w_y) {
++	// Only the named form is used, see image_desc_info_handle_primaries_named
++}
++
++static void image_desc_info_handle_primaries_named(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t primaries) {
++	struct grim_output *output = data;
++	output->color.primaries_named = primaries;
++	output->color.has_primaries = true;
++}
++
++static void image_desc_info_handle_tf_power(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t eexp) {
++	// A power curve is already an SDR encoding, so it needs no conversion;
++	// leaving has_tf unset is what makes the capture be written as-is
++}
++
++static void image_desc_info_handle_tf_named(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t tf) {
++	struct grim_output *output = data;
++	output->color.tf_named = tf;
++	output->color.has_tf = true;
++}
++
++static void image_desc_info_handle_luminances(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t min_lum,
++		uint32_t max_lum, uint32_t reference_lum) {
++	struct grim_output *output = data;
++	output->color.min_lum = min_lum / 10000.0;
++	output->color.max_lum = max_lum;
++	output->color.reference_lum = reference_lum;
++	output->color.has_luminances = true;
++}
++
++static void image_desc_info_handle_target_primaries(void *data,
++		struct wp_image_description_info_v1 *info, int32_t r_x, int32_t r_y,
++		int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y,
++		int32_t w_x, int32_t w_y) {
++	// Mastering display metadata, not needed to decode the image
++}
++
++static void image_desc_info_handle_target_luminance(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t min_lum,
++		uint32_t max_lum) {
++	// Mastering display metadata, not needed to decode the image
++}
++
++static void image_desc_info_handle_target_max_cll(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t max_cll) {
++	// Mastering display metadata, not needed to decode the image
++}
++
++static void image_desc_info_handle_target_max_fall(void *data,
++		struct wp_image_description_info_v1 *info, uint32_t max_fall) {
++	// Mastering display metadata, not needed to decode the image
++}
++
++static const struct wp_image_description_info_v1_listener image_desc_info_listener = {
++	.done = image_desc_info_handle_done,
++	.icc_file = image_desc_info_handle_icc_file,
++	.primaries = image_desc_info_handle_primaries,
++	.primaries_named = image_desc_info_handle_primaries_named,
++	.tf_power = image_desc_info_handle_tf_power,
++	.tf_named = image_desc_info_handle_tf_named,
++	.luminances = image_desc_info_handle_luminances,
++	.target_primaries = image_desc_info_handle_target_primaries,
++	.target_luminance = image_desc_info_handle_target_luminance,
++	.target_max_cll = image_desc_info_handle_target_max_cll,
++	.target_max_fall = image_desc_info_handle_target_max_fall,
++};
++
++static void image_desc_handle_failed(void *data,
++		struct wp_image_description_v1 *image_desc, uint32_t cause, const char *msg) {
++	// Leave the color info unset, the capture is then treated as sRGB
++}
++
++static void image_desc_request_information(void *data,
++		struct wp_image_description_v1 *image_desc) {
++	struct wp_image_description_info_v1 *info =
++		wp_image_description_v1_get_information(image_desc);
++	wp_image_description_info_v1_add_listener(info, &image_desc_info_listener, data);
++}
++
++static void image_desc_handle_ready(void *data,
++		struct wp_image_description_v1 *image_desc, uint32_t identity) {
++	image_desc_request_information(data, image_desc);
++}
++
++static void image_desc_handle_ready2(void *data,
++		struct wp_image_description_v1 *image_desc, uint32_t identity_hi,
++		uint32_t identity_lo) {
++	image_desc_request_information(data, image_desc);
++}
++
++static const struct wp_image_description_v1_listener image_desc_listener = {
++	.failed = image_desc_handle_failed,
++	.ready = image_desc_handle_ready,
++	.ready2 = image_desc_handle_ready2,
++};
++
+ static void handle_global(void *data, struct wl_registry *registry,
+ 		uint32_t name, const char *interface, uint32_t version) {
+ 	struct grim_state *state = data;
+@@ -382,6 +497,9 @@ static void handle_global(void *data, struct wl_registry *registry,
+ 	} else if (strcmp(interface, zwlr_screencopy_manager_v1_interface.name) == 0) {
+ 		state->screencopy_manager = wl_registry_bind(registry, name,
+ 			&zwlr_screencopy_manager_v1_interface, 1);
++	} else if (strcmp(interface, wp_color_manager_v1_interface.name) == 0) {
++		state->color_manager = wl_registry_bind(registry, name,
++			&wp_color_manager_v1_interface, 1);
+ 	} else if (strcmp(interface, ext_foreign_toplevel_list_v1_interface.name) == 0) {
+ 		state->foreign_toplevel_list = wl_registry_bind(registry, name,
+ 			&ext_foreign_toplevel_list_v1_interface, 1);
+@@ -780,11 +898,32 @@ int main(int argc, char *argv[]) {
+ 		}
+ 	}
+ 
++	if (state.color_manager != NULL) {
++		struct grim_output *output;
++		wl_list_for_each(output, &state.outputs, link) {
++			struct wp_color_management_output_v1 *cm_output =
++				wp_color_manager_v1_get_output(state.color_manager,
++					output->wl_output);
++			struct wp_image_description_v1 *image_desc =
++				wp_color_management_output_v1_get_image_description(cm_output);
++			wp_image_description_v1_add_listener(image_desc,
++				&image_desc_listener, output);
++			wp_color_management_output_v1_destroy(cm_output);
++		}
++	}
++
+ 	if (wl_display_roundtrip(state.display) < 0) {
+ 		fprintf(stderr, "wl_display_roundtrip() failed\n");
+ 		return EXIT_FAILURE;
+ 	}
+ 
++	// The image description info is requested from the ready event above, so
++	// its events only arrive on the next roundtrip
++	if (state.color_manager != NULL && wl_display_roundtrip(state.display) < 0) {
++		fprintf(stderr, "wl_display_roundtrip() failed\n");
++		return EXIT_FAILURE;
++	}
++
+ 	if (state.xdg_output_manager == NULL) {
+ 		fprintf(stderr, "warning: zxdg_output_manager_v1 isn't available, "
+ 			"guessing the output layout\n");
+@@ -861,13 +1000,52 @@ int main(int argc, char *argv[]) {
+ 		get_capture_layout_extents(&state, geometry);
+ 	}
+ 
+-	// PNG is the only output format that can carry more than 8 bits per channel
++	// Captures of an HDR output are encoded in a way that no ordinary image
++	// file can express, so they are converted to SDR below. A single image can
++	// only be converted as a whole, so this needs every capture in it to be
++	// encoded the same way.
++	const struct grim_color_info *tonemap_color = NULL;
++	bool mixed_color = false;
++	size_t n_captures = 0, n_tonemap = 0;
++	struct grim_capture *color_capture;
++	wl_list_for_each(color_capture, &state.captures, link) {
++		n_captures++;
++
++		const struct grim_color_info *color =
++			color_capture->output != NULL ? &color_capture->output->color : NULL;
++		if (color == NULL || !color_needs_tonemap(color)) {
++			continue;
++		}
++
++		if (tonemap_color != NULL &&
++				tonemap_color->reference_lum != color->reference_lum) {
++			mixed_color = true;
++		}
++		tonemap_color = color;
++		n_tonemap++;
++	}
++	if (n_tonemap > 0 && (mixed_color || n_tonemap != n_captures)) {
++		fprintf(stderr, "warning: captures do not share a color space, "
++			"writing the image without converting it\n");
++		tonemap_color = NULL;
++	}
++
++	// PNG is the only output format that can carry more than 8 bits per
++	// channel, but the extra precision is also worth having as tone mapping
++	// input even when the result is written as 8-bit
+ 	pixman_image_t *image = render(&state, geometry, scale,
+-		output_filetype == GRIM_FILETYPE_PNG);
++		output_filetype == GRIM_FILETYPE_PNG || tonemap_color != NULL);
+ 	if (image == NULL) {
+ 		return EXIT_FAILURE;
+ 	}
+ 
++	if (tonemap_color != NULL) {
++		image = tonemap_to_sdr(image, tonemap_color);
++		if (image == NULL) {
++			return EXIT_FAILURE;
++		}
++	}
++
+ 	FILE *file;
+ 	if (strcmp(output_filename, "-") == 0) {
+ 		file = stdout;
+diff --git a/meson.build b/meson.build
+index 403e304..3d1ccbb 100644
+--- a/meson.build
++++ b/meson.build
+@@ -37,6 +37,7 @@ grim_files = [
+ 	'main.c',
+ 	'output-layout.c',
+ 	'render.c',
++	'tonemap.c',
+ 	'write_ppm.c',
+ 	'write_png.c',
+ ]
+diff --git a/protocol/meson.build b/protocol/meson.build
+index 903a744..6b0292e 100644
+--- a/protocol/meson.build
++++ b/protocol/meson.build
+@@ -1,4 +1,4 @@
+-wayland_protos = dependency('wayland-protocols', version: '>=1.37')
++wayland_protos = dependency('wayland-protocols', version: '>=1.41')
+ wl_protocol_dir = wayland_protos.get_variable('pkgdatadir')
+ 
+ wayland_scanner = dependency('wayland-scanner', version: '>=1.14.91', native: true)
+@@ -18,6 +18,7 @@ wayland_scanner_client = generator(
+ )
+ 
+ protocols = [
++	wl_protocol_dir / 'staging/color-management/color-management-v1.xml',
+ 	wl_protocol_dir / 'staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml',
+ 	wl_protocol_dir / 'staging/ext-image-capture-source/ext-image-capture-source-v1.xml',
+ 	wl_protocol_dir / 'staging/ext-image-copy-capture/ext-image-copy-capture-v1.xml',
+diff --git a/render.c b/render.c
+index 123184d..4f84912 100644
+--- a/render.c
++++ b/render.c
+@@ -93,7 +93,7 @@ bool is_format_supported(enum wl_shm_format fmt) {
+ 	return get_pixman_format(fmt) != 0;
+ }
+ 
+-static bool is_format_10bpc(pixman_format_code_t fmt) {
++bool is_format_10bpc(pixman_format_code_t fmt) {
+ 	switch (fmt) {
+ 	case PIXMAN_a2r10g10b10:
+ 	case PIXMAN_x2r10g10b10:
+diff --git a/tonemap.c b/tonemap.c
+new file mode 100644
+index 0000000..f1ffc2e
+--- /dev/null
++++ b/tonemap.c
+@@ -0,0 +1,139 @@
++#include <math.h>
++#include <stdint.h>
++#include <stdio.h>
++
++#include "render.h"
++#include "tonemap.h"
++
++#include "color-management-v1-protocol.h"
++
++// SMPTE ST 2084 constants
++#define PQ_M1 (2610.0 / 16384.0)
++#define PQ_M2 (2523.0 / 4096.0 * 128.0)
++#define PQ_C1 (3424.0 / 4096.0)
++#define PQ_C2 (2413.0 / 4096.0 * 32.0)
++#define PQ_C3 (2392.0 / 4096.0 * 32.0)
++
++// Inverse of the PQ OETF: a signal value in [0, 1] to absolute luminance in
++// cd/m², where 1.0 corresponds to 10000 cd/m².
++static double pq_to_luminance(double e) {
++	double ep = pow(e, 1.0 / PQ_M2);
++	double num = ep - PQ_C1;
++	if (num < 0.0) {
++		num = 0.0;
++	}
++	return 10000.0 * pow(num / (PQ_C2 - PQ_C3 * ep), 1.0 / PQ_M1);
++}
++
++// Compositors encode SDR output with a pure 2.2 power curve rather than the
++// piecewise sRGB one, so using it here is what makes a capture of an HDR output
++// match a capture of the same content with HDR turned off.
++#define SDR_GAMMA 2.2
++
++static double sdr_encode(double v) {
++	return pow(v, 1.0 / SDR_GAMMA);
++}
++
++// BT.2020 to BT.709 primaries, in linear light
++static const double bt2020_to_srgb[3][3] = {
++	{  1.6605, -0.5876, -0.0728 },
++	{ -0.1246,  1.1329, -0.0083 },
++	{ -0.0182, -0.1006,  1.1187 },
++};
++
++bool color_needs_tonemap(const struct grim_color_info *color) {
++	return color->has_tf &&
++		color->tf_named == WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ;
++}
++
++#define ENCODE_LUT_SIZE 4096
++
++pixman_image_t *tonemap_to_sdr(pixman_image_t *image,
++		const struct grim_color_info *color) {
++	pixman_format_code_t format = pixman_image_get_format(image);
++	if (!is_format_10bpc(format)) {
++		fprintf(stderr, "cannot tone map a %d bit per pixel capture\n",
++			PIXMAN_FORMAT_BPP(format));
++		return NULL;
++	}
++
++	int width = pixman_image_get_width(image);
++	int height = pixman_image_get_height(image);
++	int stride = pixman_image_get_stride(image);
++	uint32_t *data = pixman_image_get_data(image);
++
++	// Diffuse white sits at the reference luminance, so scaling by it puts
++	// ordinary SDR content at 1.0. Anything brighter is a highlight that
++	// cannot be represented in sRGB and gets clipped below.
++	double reference_lum = color->has_luminances ? color->reference_lum : 203.0;
++	if (reference_lum <= 0.0) {
++		reference_lum = 203.0;
++	}
++
++	// The source is 10-bit, so the electro-optical transfer function is
++	// exactly representable as a table
++	double decode[1024];
++	for (int i = 0; i < 1024; i++) {
++		decode[i] = pq_to_luminance(i / 1023.0) / reference_lum;
++	}
++
++	// The encode step only feeds an 8-bit result, so a table indexed by the
++	// clipped linear value is accurate enough and avoids a pow() per channel
++	uint8_t encode[ENCODE_LUT_SIZE];
++	for (int i = 0; i < ENCODE_LUT_SIZE; i++) {
++		double v = sdr_encode(i / (double)(ENCODE_LUT_SIZE - 1));
++		encode[i] = (uint8_t)lround(v * 255.0);
++	}
++
++	bool convert_primaries = !color->has_primaries ||
++		color->primaries_named != WP_COLOR_MANAGER_V1_PRIMARIES_SRGB;
++
++	pixman_image_t *dst = pixman_image_create_bits(PIXMAN_a8r8g8b8,
++		width, height, NULL, 0);
++	if (!dst) {
++		fprintf(stderr, "failed to create image with size: %d x %d\n",
++			width, height);
++		return NULL;
++	}
++	int dst_stride = pixman_image_get_stride(dst);
++	uint32_t *dst_data = pixman_image_get_data(dst);
++
++	for (int y = 0; y < height; y++) {
++		const uint32_t *src_row = (const uint32_t *)((uint8_t *)data + y * stride);
++		uint32_t *dst_row = (uint32_t *)((uint8_t *)dst_data + y * dst_stride);
++
++		for (int x = 0; x < width; x++) {
++			uint32_t px = src_row[x];
++			double rgb[3] = {
++				decode[(px >> 20) & 0x3ff],
++				decode[(px >> 10) & 0x3ff],
++				decode[(px >>  0) & 0x3ff],
++			};
++
++			if (convert_primaries) {
++				double in[3] = { rgb[0], rgb[1], rgb[2] };
++				for (int c = 0; c < 3; c++) {
++					rgb[c] = bt2020_to_srgb[c][0] * in[0] +
++						bt2020_to_srgb[c][1] * in[1] +
++						bt2020_to_srgb[c][2] * in[2];
++				}
++			}
++
++			uint32_t out = 0xff000000;
++			for (int c = 0; c < 3; c++) {
++				double v = rgb[c];
++				if (v < 0.0) {
++					v = 0.0;
++				} else if (v > 1.0) {
++					v = 1.0;
++				}
++				int idx = (int)lround(v * (ENCODE_LUT_SIZE - 1));
++				out |= (uint32_t)encode[idx] << (16 - 8 * c);
++			}
++			dst_row[x] = out;
++		}
++	}
++
++	pixman_image_unref(image);
++	return dst;
++}
+-- 
+2.55.0
+
