@@ -15,6 +15,7 @@
             obs
             networkd
             desktop
+            persona
             lact
             aqua
           ])

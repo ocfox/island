@@ -24,7 +24,7 @@
         name = "ed";
         hash = "sha256-FHRa6itAqi5i0XEqPbC1ueCoqKicbM7Qmvomwom/oX4=";
       };
-      config = ''
+      swayConfig = ''
         font pango:monospace 8.000000
         floating_modifier Mod4
         default_border pixel 2
@@ -105,6 +105,7 @@
         bindsym Mod4+l focus right
         bindsym Mod4+minus scratchpad show
         bindsym Mod4+o exec ${lib.getExe pkgs.fuzzel}
+        bindsym Mod4+Shift+o exec qs -c persona ipc call searchapp toggle
         bindsym Mod4+r mode resize
         bindsym Mod4+s layout stacking
         bindsym Mod4+space floating toggle
@@ -177,7 +178,7 @@
           google-chrome
           telegram-desktop
         ];
-        config."sway/config" = pkgs.writeText "sway-config" config;
+        config."sway/config" = pkgs.writeText "sway-config" swayConfig;
       };
 
       systemd.packages = [ pkgs.local.xwayland-satellite ];

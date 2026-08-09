@@ -11,6 +11,7 @@
           disko
           facter
           desktop
+          waybar
         ];
         facter.reportPath = ./facter.json;
         services.blueman.enable = true;
