@@ -11,6 +11,9 @@
           vps
           disko
           sandbox-runner
+          memos
+          vaultwarden
+          mastodon
         ];
 
         # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
@@ -93,10 +96,37 @@
           ];
         };
 
+        kix.secrets.cf-dns.mode = "640";
+        security.acme = {
+          acceptTerms = true;
+          defaults.email = "civet@ocfox.me";
+        };
+        services.caddy.enable = true;
+        users.users.caddy.extraGroups = [ "acme" ];
+
         kix.secrets.sandbox-api-key.mode = "640";
         services.sandbox-runner = {
           enable = true;
+          domain = "exec.s4r.in";
           apiKeyFile = config.kix.secrets.sandbox-api-key.path;
+        };
+
+        services.vaultwarden.enable = true;
+        services.memos.enable = true;
+        services.mastodon = {
+          enable = true;
+          localDomain = "ocfox.me";
+          configureNginx = false;
+          streamingProcesses = 1;
+          smtp = {
+            host = "smtp.migadu.com";
+            port = 587;
+            user = "mastodon@ocfox.me";
+            fromAddress = "mastodon@ocfox.me";
+            passwordFile = config.kix.secrets.mastodon-smtp.path;
+          };
+          extraConfig.WEB_DOMAIN = "mastodon.ocfox.me";
+          extraConfig.SINGLE_USER_MODE = "true";
         };
       };
   };

@@ -5,6 +5,7 @@
       config,
       lib,
       pkgs,
+      options,
       ...
     }:
     let
@@ -32,8 +33,12 @@
       ];
     in
     {
+      meta.maintainers = [ "ocfox" ];
+
       options.services.sandbox-runner = {
         enable = lib.mkEnableOption "sandboxed code-execution runner for Dorothy";
+
+        package = lib.mkPackageOption pkgs.local "sandbox-runner" { };
 
         listenAddr = lib.mkOption {
           type = lib.types.str;
@@ -49,37 +54,62 @@
           type = lib.types.path;
           description = "Path to a file containing the shared-secret bearer token, used both to authenticate incoming requests and to sign outgoing job callbacks.";
         };
-      };
 
-      config = lib.mkIf cfg.enable {
-        systemd.services.sandbox-runner = {
-          description = "Dorothy sandboxed code-execution runner";
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
-          wantedBy = [ "multi-user.target" ];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${pkgs.local.sandbox-runner}/bin/sandbox-runner";
-            Restart = "on-failure";
-            RestartSec = "3s";
-            StateDirectory = "sandbox-runner";
-            # runs as root (no DynamicUser here): it needs permission to create
-            # the transient, DynamicUser-sandboxed units it spawns per job.
-            Environment = [
-              "SANDBOX_LISTEN_ADDR=${cfg.listenAddr}"
-              "SANDBOX_LISTEN_PORT=${toString cfg.listenPort}"
-              "SANDBOX_API_KEY_FILE=${cfg.apiKeyFile}"
-              "SANDBOX_JOBS_DIR=/var/lib/sandbox-runner/jobs"
-              "SANDBOX_RESULTS_DIR=/var/lib/sandbox-runner/results"
-              "SANDBOX_PATH=${sandboxPath}"
-              # systemd-run resolves its entry command against its own default
-              # search path, not --setenv=PATH -- so that command must be given
-              # as an absolute path regardless of SANDBOX_PATH above
-              "SANDBOX_PYTHON_BIN=${sandboxPython}/bin/python3"
-              "SANDBOX_NODE_BIN=${pkgs.nodejs}/bin/node"
-            ];
-          };
+        domain = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Optional domain name to automatically configure ACME certificate and Caddy reverse proxy";
         };
       };
+
+      config = lib.mkIf cfg.enable (
+        lib.mkMerge [
+          (lib.optionalAttrs (options ? systemd) {
+            systemd.services.sandbox-runner = {
+              description = "Dorothy sandboxed code-execution runner";
+              after = [ "network-online.target" ];
+              wants = [ "network-online.target" ];
+              wantedBy = [ "multi-user.target" ];
+              serviceConfig = {
+                Type = "simple";
+                ExecStart = "${cfg.package}/bin/sandbox-runner";
+                Restart = "on-failure";
+                RestartSec = "3s";
+                StateDirectory = "sandbox-runner";
+                # runs as root (no DynamicUser here): it needs permission to create
+                # the transient, DynamicUser-sandboxed units it spawns per job.
+                Environment = [
+                  "SANDBOX_LISTEN_ADDR=${cfg.listenAddr}"
+                  "SANDBOX_LISTEN_PORT=${toString cfg.listenPort}"
+                  "SANDBOX_API_KEY_FILE=${cfg.apiKeyFile}"
+                  "SANDBOX_JOBS_DIR=/var/lib/sandbox-runner/jobs"
+                  "SANDBOX_RESULTS_DIR=/var/lib/sandbox-runner/results"
+                  "SANDBOX_PATH=${sandboxPath}"
+                  # systemd-run resolves its entry command against its own default
+                  # search path, not --setenv=PATH -- so that command must be given
+                  # as an absolute path regardless of SANDBOX_PATH above
+                  "SANDBOX_PYTHON_BIN=${sandboxPython}/bin/python3"
+                  "SANDBOX_NODE_BIN=${pkgs.nodejs}/bin/node"
+                ];
+              };
+            };
+          })
+
+          (lib.mkIf (cfg.domain != null) {
+            security.acme.certs.${cfg.domain} = {
+              dnsProvider = "cloudflare";
+              environmentFile = config.kix.secrets.cf-dns.path;
+              group = "caddy";
+            };
+
+            services.caddy.virtualHosts.${cfg.domain} = {
+              useACMEHost = cfg.domain;
+              extraConfig = ''
+                reverse_proxy 127.0.0.1:${toString cfg.listenPort}
+              '';
+            };
+          })
+        ]
+      );
     };
 }
