@@ -1,4 +1,4 @@
-{ self, inputs, ... }:
+{ self, ... }:
 {
   hosts.gallery = {
     system = "x86_64-linux";
@@ -7,32 +7,22 @@
     module =
       { pkgs, config, ... }:
       {
-        imports =
-          (with self.modules.nixos; [
-            boot
-            facter
-            steam
-            obs
-            networkd
-            desktop
-            waybar
-            lact
-            aqua
-          ])
-          ++ [ inputs.vertere.nixosModules.default ];
+        imports = with self.modules.nixos; [
+          boot
+          facter
+          steam
+          obs
+          networkd
+          desktop
+          waybar
+          lact
+          aqua
+          vertere
+        ];
         facter.reportPath = ./facter.json;
         hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };
-        # Read by a systemd *user* service, so it has to belong to the user
-        # rather than root.
-        kix.secrets.vertere = {
-          mode = "400";
-          owner = config.my.name;
-        };
-        services.vertere = {
-          enable = true;
-          environmentFile = config.kix.secrets.vertere.path;
-        };
+        services.vertere.enable = true;
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
         services.lact.enable = true;

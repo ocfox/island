@@ -7,7 +7,10 @@
     module =
       { config, lib, ... }:
       {
-        imports = with self.modules.nixos; [ vps ];
+        imports = with self.modules.nixos; [
+          vps
+          xray
+        ];
 
         fileSystems."/" = {
           device = "/dev/disk/by-uuid/f7aa78d3-e86c-4bd4-ac54-445d0a66b19a";
@@ -58,11 +61,7 @@
         nix.settings.nix-path = lib.mkForce [ ];
         system.tools.nixos-rebuild.enable = false;
 
-        kix.secrets.light-xray = { };
-        services.xray = {
-          enable = true;
-          settingsFile = config.kix.secrets.light-xray.path;
-        };
+        services.xray.enable = true;
 
         kix.secrets.light-wg = { };
         networking.wireguard.interfaces.wg0 = {

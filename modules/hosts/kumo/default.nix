@@ -14,6 +14,7 @@
           memos
           vaultwarden
           mastodon
+          monitoring
         ];
 
         # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
@@ -128,6 +129,8 @@
           extraConfig.WEB_DOMAIN = "mastodon.ocfox.me";
           extraConfig.SINGLE_USER_MODE = "true";
         };
+
+        services.monitoring-stack.enable = true;
       };
   };
 }
