@@ -1,0 +1,88 @@
+{ ... }:
+{
+  flake.modules.nixos.aqua =
+    {
+      config,
+      lib,
+      pkgs,
+      options,
+      ...
+    }:
+    let
+      cfg = config.services.aqua;
+    in
+    {
+      meta.maintainers = [ "ocfox" ];
+
+      options.services.aqua = {
+        enable = lib.mkEnableOption "aqua activity tracking";
+
+        package = lib.mkPackageOption pkgs.local "aqua" { };
+
+        serveAddr = lib.mkOption {
+          type = lib.types.str;
+          default = "127.0.0.1";
+        };
+
+        servePort = lib.mkOption {
+          type = lib.types.port;
+          default = 8686;
+        };
+
+        idleTimeoutMs = lib.mkOption {
+          type = lib.types.int;
+          default = 30000;
+        };
+
+        vmUrl = lib.mkOption {
+          type = lib.types.str;
+          default = "http://100.64.0.3:9090/api/v1/import";
+        };
+      };
+
+      config = lib.mkIf cfg.enable (
+        lib.mkMerge [
+          (lib.optionalAttrs (options ? systemd) {
+            systemd.user.services.aqua-agent = {
+              description = "Aqua activity agent";
+              after = [ "graphical-session.target" ];
+              partOf = [ "graphical-session.target" ];
+              wantedBy = [ "graphical-session.target" ];
+              serviceConfig = {
+                Type = "simple";
+                Environment = [
+                  "AQUA_DB=%h/.local/share/aqua/aqua.db"
+                  "AQUA_AGENT_ID=%H"
+                  "AQUA_IDLE_TIMEOUT_MS=${toString cfg.idleTimeoutMs}"
+                  "AQUA_VM_URL=${cfg.vmUrl}"
+                ];
+                ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.local/share/aqua";
+                ExecStart = "${cfg.package}/bin/aqua agent watch";
+                Restart = "on-failure";
+                RestartSec = "3s";
+              };
+            };
+
+            systemd.user.services.aqua-serve = {
+              description = "Aqua HTTP API";
+              after = [ "aqua-agent.service" ];
+              wantedBy = [ "default.target" ];
+              serviceConfig = {
+                Type = "simple";
+                Environment = [
+                  "AQUA_DB=%h/.local/share/aqua/aqua.db"
+                  "AQUA_AGENT_ID=%H"
+                  "AQUA_HTTP_ADDR=${cfg.serveAddr}"
+                  "AQUA_HTTP_PORT=${toString cfg.servePort}"
+                ];
+                ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/.local/share/aqua";
+                ExecStart = "${cfg.package}/bin/aqua serve";
+                Restart = "on-failure";
+                RestartSec = "3s";
+              };
+            };
+          })
+        ]
+      );
+    };
+}
