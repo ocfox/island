@@ -6,11 +6,11 @@
 
 stdenv.mkDerivation rec {
   pname = "lxgw-zhisong";
-  version = "0.515";
+  version = "1.001";
 
   src = fetchurl {
     url = "https://github.com/lxgw/LxgwZhiSong/releases/download/v${version}/LXGWZhiSongMN.ttf";
-    hash = "sha256-llzn+lRYmYPazsmaYO4/vMwOUSH1B4PAHNIt2o8yqDU=";
+    hash = "sha256-BVcIxEl6D0Z44Yp7uTOlE4nzd+KvPlKJYAKjef3Sh0U=";
   };
 
   dontUnpack = true;
