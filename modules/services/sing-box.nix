@@ -14,6 +14,8 @@
     {
       meta.maintainers = [ "ocfox" ];
 
+      disabledModules = [ "services/networking/sing-box.nix" ];
+
       options.services.sing-box = {
         enable = lib.mkEnableOption "sing-box client service";
 

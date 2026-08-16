@@ -18,10 +18,12 @@
           lact
           aqua
           vertere
+          sing-box
         ];
         facter.reportPath = ./facter.json;
         hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };
+        services.sing-box.enable = true;
         services.vertere.enable = true;
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
