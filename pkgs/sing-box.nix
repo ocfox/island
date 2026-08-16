@@ -13,5 +13,5 @@ sing-box.overrideAttrs (oldAttrs: rec {
     hash = "sha256-fUaq2tyC2kTDveKhRMB+TQMZLL515MqkyK8mS85U7kI=";
   };
 
-  vendorHash = "sha256-4MtT1e8OQBo7kp0pZ7AnQwru3CRGdcSdLSrb3jGUxK0=";
+  vendorHash = "sha256-70cAuzVZY1F++xjoS+ZbWno7Y4uzi7FHIc2RFXFhMw0=";
 })
