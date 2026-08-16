@@ -56,6 +56,7 @@
           ];
           routingPolicyRules = [
             {
+              Family = "both";
               FirewallMark = 1;
               Table = 100;
             }
