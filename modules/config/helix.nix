@@ -10,18 +10,15 @@
       settingsFormat = pkgs.formats.toml { };
 
       settings = {
-        theme = {
-          dark = "everforest_dark";
-          light = "everforest_light";
-        };
+        theme = "everforest_dark";
         editor = {
           line-number = "relative";
           mouse = false;
-        };
-        editor.cursor-shape = {
-          insert = "bar";
-          normal = "block";
-          select = "underline";
+          cursor-shape = {
+            insert = "bar";
+            normal = "block";
+            select = "underline";
+          };
         };
         keys = {
           normal = {

@@ -6,6 +6,7 @@
       my.packages = with pkgs; [
         gh
         yazi
+        zed-editor
       ];
 
       imports = with config.flake.modules.nixos; [

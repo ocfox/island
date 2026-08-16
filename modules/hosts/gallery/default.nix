@@ -15,7 +15,6 @@
           networkd
           desktop
           waybar
-          lact
           aqua
           vertere
           sing-box
@@ -27,7 +26,6 @@
         services.vertere.enable = true;
         hardware.i2c.enable = true;
         boot.initrd.kernelModules = [ "amdgpu" ];
-        services.lact.enable = true;
         services.aqua = {
           enable = true;
           # tailscale only: the API is unauthenticated and the host firewall is off
