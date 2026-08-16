@@ -15,6 +15,7 @@
           vaultwarden
           mastodon
           monitoring
+          aptor
         ];
 
         # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
@@ -112,6 +113,7 @@
           apiKeyFile = config.kix.secrets.sandbox-api-key.path;
         };
 
+        services.aptor.enable = true;
         services.vaultwarden.enable = true;
         services.memos.enable = true;
         services.mastodon = {
