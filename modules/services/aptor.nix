@@ -48,10 +48,11 @@
               wantedBy = [ "multi-user.target" ];
               serviceConfig = {
                 Type = "simple";
-                ExecStart = "${cfg.package}/bin/aptor server --config ${config.kix.secrets.aptor.path} --listen ${cfg.listenAddr}:${toString cfg.listenPort}";
+                DynamicUser = true;
+                LoadCredential = [ "aptor.json:${config.kix.secrets.aptor.path}" ];
+                ExecStart = "${cfg.package}/bin/aptor server --config %d/aptor.json --listen ${cfg.listenAddr}:${toString cfg.listenPort}";
                 Restart = "on-failure";
                 RestartSec = "5s";
-                DynamicUser = true;
               };
             };
           })
