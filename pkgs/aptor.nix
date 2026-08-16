@@ -10,8 +10,8 @@ buildGoModule {
   src = fetchFromGitHub {
     owner = "ocfox";
     repo = "aptor";
-    rev = "188cbff4e20220befd5ea672b168fb4f5925a05f";
-    hash = "sha256-CuuUCh6bySHrpqSyGkpqC0XYcULGflwy5b5q7SmCPPo=";
+    rev = "1757824001ebbe7296b388c63e4fe3348b03a379";
+    hash = "sha256-iuiYEaLbe8usORY0RD5WHZ/7EIJHJ/zs6V00gne3/Fs=";
   };
 
   vendorHash = null;

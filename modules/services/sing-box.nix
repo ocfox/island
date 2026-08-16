@@ -31,10 +31,11 @@
             chain output {
               type route hook output priority mangle; policy accept;
               meta mark 0xff accept
+              oifname "tailscale0" accept
               udp dport 53 meta mark set 0x1
               tcp dport 53 meta mark set 0x1
-              ip daddr { 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 255.255.255.255/32 } accept
-              ip6 daddr { ::1/128, fc00::/7, fe80::/10, ff00::/8 } accept
+              ip daddr { 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 224.0.0.0/4, 255.255.255.255/32 } accept
+              ip6 daddr { ::1/128, fc00::/7, fe80::/10, ff00::/8, fd7a:115c:a1e0::/48 } accept
               meta l4proto { tcp, udp } meta mark set 0x1
             }
           '';
@@ -63,18 +64,23 @@
           ];
         };
 
+        users.users.sing-box = {
+          isSystemUser = true;
+          group = "sing-box";
+        };
+        users.groups.sing-box = { };
+
         systemd.services.sing-box = {
           description = "sing-box transparent proxy";
-          after = [
-            "network.target"
-            "sing-box-sync.service"
-          ];
-          wants = [ "sing-box-sync.service" ];
+          after = [ "network.target" ];
           wantedBy = [ "multi-user.target" ];
           serviceConfig = {
+            User = "sing-box";
+            Group = "sing-box";
             ExecStart = "${pkgs.local.sing-box}/bin/sing-box run -c /var/lib/sing-box/config.json -D /var/lib/sing-box";
             Restart = "always";
             RestartSec = "3s";
+            TimeoutStopSec = "5s";
             StateDirectory = "sing-box";
             AmbientCapabilities = [
               "CAP_NET_ADMIN"
@@ -105,9 +111,11 @@
               mkdir -p /var/lib/sing-box
               KEY=$(tr -d ' \n\r' < ${config.kix.secrets.sing-box.path})
               if [ -n "$KEY" ]; then
-                if curl -fsSL "https://aptor.s4r.in/tproxy/$KEY" -o /var/lib/sing-box/config.json.tmp; then
+                if curl --connect-timeout 5 --max-time 15 -fsSL "https://aptor.s4r.in/tproxy/$KEY" -o /var/lib/sing-box/config.json.tmp; then
                   if sing-box check -c /var/lib/sing-box/config.json.tmp; then
                     mv /var/lib/sing-box/config.json.tmp /var/lib/sing-box/config.json
+                    chown -R sing-box:sing-box /var/lib/sing-box
+                    chmod 644 /var/lib/sing-box/config.json
                     systemctl try-restart sing-box.service || true
                   fi
                 fi
