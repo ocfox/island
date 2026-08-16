@@ -12,7 +12,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "xwayland-satellite";
-  version = "0.8.1-unstable-2026-05-30";
+  version = "0.8.2";
 
   src = fetchFromGitHub {
     owner = "Supreeeme";
