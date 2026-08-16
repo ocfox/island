@@ -1,0 +1,64 @@
+name: Weekly Package Updates
+
+on:
+  schedule:
+    # Run every Monday at 03:00 UTC (11:00 CST)
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-pkgs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v9
+
+      - name: Update custom packages
+        run: |
+          set -euo pipefail
+
+          PKGS=(
+            "lxgw-neoxihei"
+            "lxgw-zhisong"
+            "mpv-handler"
+            "xwayland-satellite"
+            "qt6-cava-plugin"
+            "persona-shell"
+            "aptor"
+            "grim"
+          )
+
+          for pkg in "${PKGS[@]}"; do
+            echo "::group::Updating $pkg"
+            if nix shell nixpkgs#nix-update --command nix-update --flake --commit "$pkg"; then
+              echo "Successfully processed $pkg"
+            else
+              echo "Warning: nix-update failed for $pkg, skipping."
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Validate flake after updates
+        run: nix flake check
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: auto-update-pkgs
+          title: "chore(pkgs): weekly automated package updates"
+          body: |
+            Automated weekly update of packages in `pkgs/` using `nix-update`.
+
+            All packages have been verified with `nix flake check`.
+          commit-message: "chore(pkgs): weekly automated package updates"
+          delete-branch: true

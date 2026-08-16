@@ -11,6 +11,25 @@ test host="": (_rebuild "test" host)
 check:
     nix flake check
 
+# Update custom packages in pkgs/ to their latest upstream versions
+update-pkgs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pkgs=(
+        "lxgw-neoxihei"
+        "lxgw-zhisong"
+        "mpv-handler"
+        "xwayland-satellite"
+        "qt6-cava-plugin"
+        "persona-shell"
+        "aptor"
+        "grim"
+    )
+    for pkg in "${pkgs[@]}"; do
+        echo "Updating $pkg..."
+        nix shell nixpkgs#nix-update --command nix-update --flake --commit "$pkg" || true
+    done
+
 # Unified rebuild dispatcher
 _rebuild action host:
     #!/usr/bin/env bash
