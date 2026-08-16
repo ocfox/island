@@ -10,7 +10,7 @@
 
 stdenv.mkDerivation {
   pname = "qt6-cava-plugin";
-  version = "0.1.0-unstable-2026-05-18";
+  version = "0-unstable-2026-06-18";
 
   src = fetchFromGitHub {
     owner = "Yujonpradhananga";
