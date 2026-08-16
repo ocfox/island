@@ -17,7 +17,7 @@
 # nixpkgs builds grim from the old mirror, so this pins current upstream GitLab instead.
 stdenv.mkDerivation {
   pname = "grim";
-  version = "1.5.0-unstable-2026-03-02";
+  version = "1.5.0";
 
   src = fetchFromGitLab {
     domain = "gitlab.freedesktop.org";
