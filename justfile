@@ -31,6 +31,7 @@ update-pkgs target="":
     else
         for p in pkgs/*.nix pkgs/*/package.nix pkgs/*/default.nix; do
             [ -f "$p" ] || continue
+            grep -q "overrideAttrs" "$p" && continue
             grep -qE "fetchFrom|fetchgit|fetchurl" "$p" || continue
             pkg="$(basename "$p" .nix)"
             [ "$pkg" = "package" ] || [ "$pkg" = "default" ] && pkg="$(basename "$(dirname "$p")")"

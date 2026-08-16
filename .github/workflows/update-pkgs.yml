@@ -25,28 +25,9 @@ jobs:
 
       - name: Update custom packages
         run: |
-          set -euo pipefail
-          export GIT_EDITOR=true
-
-          update_one() {
-            local pkg="$1"
-            echo "::group::Updating $pkg"
-            if nix shell nixpkgs#nix-update --command nix-update --flake --commit "$pkg" 2>/dev/null \
-              || nix shell nixpkgs#nix-update --command nix-update --flake --commit --version=branch "$pkg" 2>/dev/null; then
-              echo "Successfully processed $pkg"
-            else
-              echo "Warning: nix-update failed for $pkg, skipping."
-            fi
-            echo "::endgroup::"
-          }
-
-          for p in pkgs/*.nix pkgs/*/package.nix pkgs/*/default.nix; do
-            [ -f "$p" ] || continue
-            grep -qE "fetchFrom|fetchgit|fetchurl" "$p" || continue
-            pkg="$(basename "$p" .nix)"
-            [ "$pkg" = "package" ] || [ "$pkg" = "default" ] && pkg="$(basename "$(dirname "$p")")"
-            update_one "$pkg"
-          done
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          nix shell nixpkgs#just --command just update-pkgs
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
