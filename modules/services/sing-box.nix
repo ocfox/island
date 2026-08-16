@@ -31,6 +31,8 @@
             chain output {
               type route hook output priority mangle; policy accept;
               meta mark 0xff accept
+              udp dport 53 meta mark set 0x1
+              tcp dport 53 meta mark set 0x1
               ip daddr { 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 255.255.255.255/32 } accept
               ip6 daddr { ::1/128, fc00::/7, fe80::/10, ff00::/8 } accept
               meta l4proto { tcp, udp } meta mark set 0x1
