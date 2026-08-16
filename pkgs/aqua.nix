@@ -14,7 +14,7 @@
 
 stdenv.mkDerivation {
   pname = "aqua";
-  version = "0.1.0";
+  version = "0-unstable-2026-06-30";
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
