@@ -26,7 +26,7 @@
             chain prerouting {
               type filter hook prerouting priority mangle; policy accept;
               iif "lo" meta mark != 0x1 accept
-              meta mark 0x1 tproxy to :7895 accept
+              meta l4proto { tcp, udp } meta mark 0x1 tproxy to :7895 accept
             }
             chain output {
               type route hook output priority mangle; policy accept;
