@@ -9,7 +9,6 @@
       {
         imports = with self.modules.nixos; [
           boot
-          facter
           steam
           obs
           networkd
@@ -19,7 +18,15 @@
           vertere
           sing-box
         ];
-        facter.reportPath = ./facter.json;
+        boot.initrd.availableKernelModules = [
+          "nvme"
+          "xhci_pci"
+          "ahci"
+          "usbhid"
+          "sd_mod"
+        ];
+        boot.kernelModules = [ "kvm-amd" ];
+        hardware.cpu.amd.updateMicrocode = true;
         hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };
         services.sing-box.enable = true;

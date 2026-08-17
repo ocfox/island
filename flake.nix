@@ -9,7 +9,6 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
-    nixos-facter.url = "github:numtide/nixos-facter-modules";
     kix = {
       url = "github:ocfox/kix";
       inputs.nixpkgs.follows = "nixpkgs";
