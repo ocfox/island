@@ -5,13 +5,13 @@
 
 buildGoModule {
   pname = "aptor";
-  version = "0-unstable-2026-08-16";
+  version = "0-unstable-2026-08-17";
 
   src = fetchFromGitHub {
     owner = "ocfox";
     repo = "aptor";
-    rev = "82c8ffa88028ef80c6c9a6979eb34db84b45209f";
-    hash = "sha256-rnZ6nFBIs01uqfCDCz8bSiuR2Cg7mp0VlUVl/rIhvVM=";
+    rev = "5d4c8bc73a33b916c9be273b028c54894d8aaf9f";
+    hash = "sha256-7rUOPfvmD/Ge9jnRnOb9vWL4bxrWaYNOrHwb9h1UoWM=";
   };
 
   vendorHash = null;
