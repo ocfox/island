@@ -15,6 +15,7 @@
           mastodon
           monitoring
           aptor
+          hermes
         ];
 
         # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
@@ -30,6 +31,11 @@
           partitionIndex = 1;
         };
         boot.loader.efi.canTouchEfiVariables = false;
+
+        boot.kernel.sysctl = {
+          "net.ipv4.ip_forward" = 1;
+          "net.ipv6.conf.all.forwarding" = 1;
+        };
 
         networking.nftables.ruleset = ''
           table inet filter {
@@ -58,6 +64,12 @@
 
             chain forward {
               type filter hook forward priority filter; policy drop;
+
+              ct state { established, related } accept
+              ct state invalid drop
+
+              iifname "podman*" accept
+              iifname "netavark*" accept
             }
 
             chain output {
@@ -107,6 +119,7 @@
 
 
 
+        services.hermes.enable = true;
         services.aptor.enable = true;
         services.vaultwarden.enable = true;
         services.memos.enable = true;
