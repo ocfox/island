@@ -10,7 +10,6 @@
         imports = with self.modules.nixos; [
           vps
           disko
-          sandbox-runner
           memos
           vaultwarden
           mastodon
@@ -106,12 +105,7 @@
         services.caddy.enable = true;
         users.users.caddy.extraGroups = [ "acme" ];
 
-        kix.secrets.sandbox-api-key.mode = "640";
-        services.sandbox-runner = {
-          enable = true;
-          domain = "exec.s4r.in";
-          apiKeyFile = config.kix.secrets.sandbox-api-key.path;
-        };
+
 
         services.aptor.enable = true;
         services.vaultwarden.enable = true;
