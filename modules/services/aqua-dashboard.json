@@ -36,7 +36,6 @@
         "type": "prometheus",
         "uid": "VictoriaMetrics"
       },
-      "pluginVersion": "11.1.0",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -275,8 +274,8 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 10,
+        "w": 15,
         "x": 0,
         "y": 4
       },
@@ -341,94 +340,52 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
+        "h": 10,
+        "w": 9,
+        "x": 15,
         "y": 4
       },
       "id": 6,
-      "title": "Usage Breakdown",
-      "type": "table",
+      "title": "Application Share",
+      "type": "piechart",
       "datasource": {
         "type": "prometheus",
         "uid": "VictoriaMetrics"
       },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
+          "color": {
+            "mode": "palette-classic"
           },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          }
+          "unit": "s"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "app_id"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Application"
-              },
-              {
-                "id": "custom.width",
-                "value": 240
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Value"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Active Duration"
-              },
-              {
-                "id": "unit",
-                "value": "s"
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "gauge"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": true
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "percent",
+            "value"
+          ]
         },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Active Duration"
-          }
-        ]
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
       },
       "targets": [
         {
@@ -443,37 +400,15 @@
           "range": false,
           "refId": "A"
         }
-      ],
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns",
-            "valueLabel": "app_id"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "indexByName": {
-              "Value": 1,
-              "app_id": 0
-            },
-            "renameByName": {}
-          }
-        }
       ]
     },
     {
       "collapsed": false,
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 14
       },
       "id": 7,
       "title": "Activity Timeline",
@@ -530,98 +465,6 @@
           "expr": "aqua_online{agent_id=~\"$agent\"} == 1",
           "instant": false,
           "legendFormat": "{{state}}",
-          "range": true,
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 20
-      },
-      "id": 8,
-      "title": "Activity Intensity (Active Minutes / Hour)",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "VictoriaMetrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#5794F2",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Active Minutes",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "bars",
-            "fillOpacity": 45,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null }
-            ]
-          },
-          "unit": "m"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "sum(increase(aqua_app_active_seconds_total{agent_id=~\"$agent\"}[1h])) / 60",
-          "instant": false,
-          "legendFormat": "Active Minutes",
           "range": true,
           "refId": "A"
         }
@@ -685,5 +528,5 @@
   "timezone": "browser",
   "title": "Aqua Activity",
   "uid": "aqua",
-  "version": 3
+  "version": 4
 }
