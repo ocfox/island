@@ -20,8 +20,12 @@ update-pkgs target="":
     update_one() {
         local pkg="$1"
         echo "Updating $pkg..."
+        local extra_flags=()
+        if [ "$pkg" = "sing-box" ]; then
+            extra_flags+=(--version=unstable)
+        fi
         # Try tag/release update first, fall back to tracking branch commits
-        nix shell nixpkgs#nix-update --command nix-update --flake --commit "$pkg" 2>/dev/null \
+        nix shell nixpkgs#nix-update --command nix-update --flake --commit "${extra_flags[@]}" "$pkg" 2>/dev/null \
             || nix shell nixpkgs#nix-update --command nix-update --flake --commit --version=branch "$pkg" 2>/dev/null \
             || true
     }
@@ -31,7 +35,6 @@ update-pkgs target="":
     else
         for p in pkgs/*.nix pkgs/*/package.nix pkgs/*/default.nix; do
             [ -f "$p" ] || continue
-            grep -q "overrideAttrs" "$p" && continue
             grep -qE "fetchFrom|fetchgit|fetchurl" "$p" || continue
             pkg="$(basename "$p" .nix)"
             [ "$pkg" = "package" ] || [ "$pkg" = "default" ] && pkg="$(basename "$(dirname "$p")")"
