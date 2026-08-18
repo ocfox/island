@@ -7,12 +7,12 @@
 
 buildGoModule {
   pname = "aqua";
-  version = "0.2.0";
+  version = "0-unstable-2026-08-18";
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "6955a6a16ddecb591e6109ea20fd49bf647c08d2";
-    hash = "sha256-/jNaY4RuNiFcjCBYkGPoBjMJ6FNFS1f3cHhh6NjZQJk=";
+    rev = "da28193bf8bd4ad6e0c517e8ebc38332300b57ac";
+    hash = "sha256-WAwJ5pYz3ym1gv5zMU8+HgtFhG8wyyw7Hcy+Jxxnq54=";
   };
 
   vendorHash = "sha256-rSfdTqix9aDZihF20ahPAqPcSXpsTasEEjoD3ADtDeo=";
