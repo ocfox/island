@@ -11,8 +11,8 @@ buildGoModule {
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "da28193bf8bd4ad6e0c517e8ebc38332300b57ac";
-    hash = "sha256-WAwJ5pYz3ym1gv5zMU8+HgtFhG8wyyw7Hcy+Jxxnq54=";
+    rev = "1e99073c9fa84c2cc629314a374a60d118307dff";
+    hash = "sha256-2ZxakY9AF5FJlKUtzaGMf0+DY7AMdiyWDF/M04ToVeI=";
   };
 
   vendorHash = "sha256-rSfdTqix9aDZihF20ahPAqPcSXpsTasEEjoD3ADtDeo=";
