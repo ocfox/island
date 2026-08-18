@@ -405,7 +405,7 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 5,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 14
@@ -423,7 +423,7 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "fillOpacity": 85,
+            "fillOpacity": 90,
             "lineWidth": 0
           },
           "mappings": [
@@ -431,7 +431,48 @@
               "options": {
                 "idle": {
                   "color": "#495057",
+                  "index": 0,
                   "text": "idle"
+                },
+                "google-chrome": {
+                  "color": "#FADE2A",
+                  "index": 1,
+                  "text": "google-chrome"
+                },
+                "footclient": {
+                  "color": "#73BF69",
+                  "index": 2,
+                  "text": "footclient"
+                },
+                "org.telegram.desktop": {
+                  "color": "#5794F2",
+                  "index": 3,
+                  "text": "org.telegram.desktop"
+                },
+                "spotify": {
+                  "color": "#1DB954",
+                  "index": 4,
+                  "text": "spotify"
+                },
+                "firefox": {
+                  "color": "#FF9830",
+                  "index": 5,
+                  "text": "firefox"
+                },
+                "dev.zed.Zed": {
+                  "color": "#F2495C",
+                  "index": 6,
+                  "text": "dev.zed.Zed"
+                },
+                "neovim": {
+                  "color": "#6ED0E0",
+                  "index": 7,
+                  "text": "neovim"
+                },
+                "code": {
+                  "color": "#007ACC",
+                  "index": 8,
+                  "text": "code"
                 }
               },
               "type": "value"
@@ -449,7 +490,7 @@
         },
         "mergeValues": true,
         "rowHeight": 0.9,
-        "showValue": "auto",
+        "showValue": "never",
         "tooltip": {
           "mode": "single"
         }
@@ -470,27 +511,21 @@
       ],
       "transformations": [
         {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
+          "id": "seriesToRows",
+          "options": {}
         },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Value": true,
-              "__name__": true,
-              "agent_id": true,
-              "instance": true,
-              "job": true
+              "Value": true
             },
             "indexByName": {
-              "Time": 0,
-              "state": 1
+              "Metric": 1,
+              "Time": 0
             },
             "renameByName": {
-              "state": "Activity"
+              "Metric": "Activity"
             }
           }
         }
