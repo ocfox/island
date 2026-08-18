@@ -405,7 +405,7 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 6,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 14
@@ -463,7 +463,7 @@
           "editorMode": "code",
           "expr": "aqua_online{agent_id=~\"$agent\"} == 1",
           "instant": false,
-          "legendFormat": "Activity",
+          "legendFormat": "{{state}}",
           "range": true,
           "refId": "A"
         }
@@ -472,7 +472,26 @@
         {
           "id": "labelsToFields",
           "options": {
-            "valueLabel": "state"
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Value": true,
+              "__name__": true,
+              "agent_id": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "state": 1
+            },
+            "renameByName": {
+              "state": "Activity"
+            }
           }
         }
       ]
