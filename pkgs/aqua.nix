@@ -1,39 +1,32 @@
 {
-  stdenv,
+  buildGoModule,
   fetchgit,
   pkg-config,
-  wayland-scanner,
-  meson,
-  ninja,
-  sqlite,
-  json_c,
-  glib,
   wayland,
-  wayland-protocols,
 }:
 
-stdenv.mkDerivation {
+buildGoModule {
   pname = "aqua";
-  version = "0-unstable-2026-06-30";
+  version = "0.2.0";
 
   src = fetchgit {
     url = "https://codeberg.org/oxc/aqua.git";
-    rev = "ed24e796a289bcfbf3d61bd174695554013af8f8";
-    hash = "sha256-fTYXEiHrqH9sOTQ8LlkZj5+VlSME8Uz4eC+egWv1+hM=";
+    rev = "6955a6a16ddecb591e6109ea20fd49bf647c08d2";
+    hash = "sha256-/jNaY4RuNiFcjCBYkGPoBjMJ6FNFS1f3cHhh6NjZQJk=";
   };
+
+  vendorHash = "sha256-rSfdTqix9aDZihF20ahPAqPcSXpsTasEEjoD3ADtDeo=";
 
   nativeBuildInputs = [
     pkg-config
-    wayland-scanner
-    meson
-    ninja
   ];
 
   buildInputs = [
-    sqlite
-    json_c
-    glib
     wayland
-    wayland-protocols
   ];
+
+  meta = {
+    description = "Lightweight desktop activity tracking daemon";
+    mainProgram = "aqua";
+  };
 }
