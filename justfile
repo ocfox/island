@@ -11,6 +11,14 @@ test host="": (_rebuild "test" host)
 check:
     nix flake check
 
+# Seal secrets for all hosts
+seal *args:
+    nix run .#kix-seal -- {{ args }}
+
+# Edit or create an encrypted secret (e.g. just edit secrets/test.age)
+edit file *args:
+    nix run .#kix-edit -- {{ file }} {{ args }}
+
 # Update custom packages in pkgs/ to their latest upstream versions (e.g. just update-pkgs, just update pkgs, just update mpv-handler)
 update-pkgs target="":
     #!/usr/bin/env bash
