@@ -49,6 +49,7 @@
           vesktop
           spotify
         ];
+        hardware.bluetooth.enable = true;
         services.blueman.enable = true;
         networking.firewall.enable = false;
         boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
