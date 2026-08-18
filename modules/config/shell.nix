@@ -25,7 +25,6 @@ in
         fp = "fish --private";
         e = "exit";
         st = "sudo systemctl-tui";
-        y = "yazi";
         sc = "systemctl";
         scs = "systemctl status";
         scr = "systemctl restart";

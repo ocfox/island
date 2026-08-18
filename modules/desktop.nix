@@ -3,9 +3,11 @@
   flake.modules.nixos.desktop =
     { pkgs, ... }:
     {
+      services.gvfs.enable = true;
+
       my.packages = with pkgs; [
         gh
-        yazi
+        nautilus
         zed-editor
       ];
 

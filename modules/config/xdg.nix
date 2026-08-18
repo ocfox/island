@@ -23,7 +23,7 @@
             "x-scheme-handler/tonsite" = [ "org.telegram.desktop.desktop" ];
             "x-scheme-handler/discord" = [ "vesktop.desktop" ];
             "x-scheme-handler/claude-cli" = [ "claude-code-url-handler.desktop" ];
-            "inode/directory" = [ "yazi.desktop" ];
+            "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
             "application/pdf" = [ "sioyek.desktop" ];
           }
           // lib.genAttrs [
