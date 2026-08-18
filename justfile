@@ -19,39 +19,9 @@ seal *args:
 edit file *args:
     nix run .#kix-edit -- {{ file }} {{ args }}
 
-# Update custom packages in pkgs/ to their latest upstream versions (e.g. just update-pkgs, just update pkgs, just update mpv-handler)
-update-pkgs target="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export GIT_EDITOR="${GIT_EDITOR:-true}"
-
-    update_one() {
-        local pkg="$1"
-        echo "Updating $pkg..."
-        local extra_flags=()
-        if [ "$pkg" = "sing-box" ]; then
-            extra_flags+=(--version=unstable)
-        fi
-        # Try tag/release update first, fall back to tracking branch commits
-        nix shell nixpkgs#nix-update --command nix-update --flake --commit "${extra_flags[@]}" "$pkg" 2>/dev/null \
-            || nix shell nixpkgs#nix-update --command nix-update --flake --commit --version=branch "$pkg" 2>/dev/null \
-            || true
-    }
-
-    if [ -n "{{ target }}" ] && [ "{{ target }}" != "pkgs" ] && [ "{{ target }}" != "all" ]; then
-        update_one "{{ target }}"
-    else
-        for p in pkgs/*.nix pkgs/*/package.nix pkgs/*/default.nix; do
-            [ -f "$p" ] || continue
-            grep -qE "fetchFrom|fetchgit|fetchurl" "$p" || continue
-            pkg="$(basename "$p" .nix)"
-            [ "$pkg" = "package" ] || [ "$pkg" = "default" ] && pkg="$(basename "$(dirname "$p")")"
-            update_one "$pkg"
-        done
-    fi
-
-# Alias for update-pkgs
-alias update := update-pkgs
+# Update custom packages in pkgs/ (e.g. just update, just update sing-box)
+update *args:
+    ./pkgs/update.py {{ args }}
 
 # Unified rebuild dispatcher
 _rebuild action host:

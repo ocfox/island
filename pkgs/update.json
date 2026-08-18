@@ -1,0 +1,9 @@
+{
+  "aptor": [],
+  "aqua": ["--version=branch"],
+  "grim": [],
+  "persona-shell": [],
+  "qt6-cava-plugin": [],
+  "sing-box": ["--version=unstable"],
+  "xwayland-satellite": []
+}
