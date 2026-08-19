@@ -1,6 +1,12 @@
 {
   flake.modules.nixos.vps =
-    { lib, modulesPath, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      modulesPath,
+      ...
+    }:
     {
       imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
@@ -57,6 +63,24 @@
           networkConfig.DHCP = lib.mkDefault "yes";
           linkConfig.RequiredForOnline = lib.mkDefault "routable";
         };
+      };
+
+      system.build.diskImage = import (modulesPath + "/../lib/make-disk-image.nix") {
+        inherit pkgs lib config;
+        partitionTableType = "hybrid";
+        format = "raw";
+        diskSize = "auto";
+        additionalSpace = "384M";
+        installBootLoader = true;
+        copyChannel = false;
+        postVM = ''
+          if [ -z "$(${pkgs.coreutils}/bin/dd if="$out/nixos.img" bs=440 count=1 status=none | tr -d '\0')" ]; then
+            echo "vps: MBR has no boot code, limine bios-install did not run" >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/stat -c %s "$out/nixos.img" > "$out/size"
+          ${pkgs.zstd}/bin/zstd -T0 -9 --rm "$out/nixos.img"
+        '';
       };
     };
 }
