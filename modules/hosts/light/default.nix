@@ -61,7 +61,10 @@
         nix.settings.nix-path = lib.mkForce [ ];
         system.tools.nixos-rebuild.enable = false;
 
-        services.xray.enable = true;
+        services.xray = {
+          enable = true;
+          secretName = "light-xray";
+        };
 
         kix.secrets.light-wg = { };
         networking.wireguard.interfaces.wg0 = {

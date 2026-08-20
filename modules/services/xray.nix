@@ -15,7 +15,6 @@
       options.services.xray = {
         secretName = lib.mkOption {
           type = lib.types.str;
-          default = "light-xray";
           description = "Name of the kix secret containing the Xray configuration JSON";
         };
       };

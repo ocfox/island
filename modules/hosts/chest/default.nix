@@ -3,12 +3,19 @@
   hosts.chest = {
     system = "x86_64-linux";
     stateVersion = "25.11";
+    hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIChMEzSk0CPcDNCBYT1tlmGWGIW9qeTGKX6LL6+NJjep root@chest";
     module =
       { ... }:
       {
         imports = with self.modules.nixos; [
           vps
+          xray
         ];
+
+        services.xray = {
+          enable = true;
+          secretName = "chest-xray";
+        };
 
         boot.growPartition = true;
 
@@ -19,7 +26,7 @@
           efiSupport = true;
           efiInstallAsRemovable = true;
           biosSupport = true;
-          biosDevice = "/dev/sda";
+          biosDevice = "/dev/nvme0n1";
           partitionIndex = 2;
         };
 
@@ -38,11 +45,7 @@
           ];
         };
         systemd.network.networks."10-eth0" = {
-          networkConfig.DHCP = "ipv4";
-          address = [ "2a01:4f8:1c1e:e1a8::1/64" ];
-          routes = [
-          { Gateway = "fe80::1"; }
-          ];
+          address = [ "2406:da14:1344:7e00:3e2a:e541:5303:12e1/128" ];
         };
       };
   };

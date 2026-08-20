@@ -14,8 +14,8 @@
           vaultwarden
           mastodon
           monitoring
-          aptor
           hermes
+          sub-relay
         ];
 
         # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
@@ -119,8 +119,8 @@
 
 
 
+        services.sub-relay.enable = true;
         services.hermes.enable = true;
-        services.aptor.enable = true;
         services.vaultwarden.enable = true;
         services.memos.enable = true;
         services.mastodon = {
