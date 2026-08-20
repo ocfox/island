@@ -44,8 +44,12 @@
             extraConfig = ''
               @auth header Authorization "Bearer {$RELAY_TOKEN}"
               handle @auth {
-                reverse_proxy https://{header.X-Target-Host} {
+                reverse_proxy {header.X-Target-Host}:443 {
                   header_up Host {header.X-Target-Host}
+                  transport http {
+                    tls
+                    tls_server_name {header.X-Target-Host}
+                  }
                 }
               }
               respond 401
