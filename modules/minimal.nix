@@ -29,29 +29,32 @@
           set -euo pipefail
           target="$1"
           boot="/boot"
-          mkdir -p "$boot/EFI/BOOT"
+          mkdir -p "$boot/EFI/BOOT" "$boot/nixos"
 
-        ${if pkgs.stdenv.hostPlatform.isAarch64 then ''
-          cp -f "${pkgs.limine}/share/limine/BOOTAA64.EFI" "$boot/EFI/BOOT/BOOTAA64.EFI"
-        '' else ''
-          cp -f "${pkgs.limine}/share/limine/BOOTX64.EFI" "$boot/EFI/BOOT/BOOTX64.EFI"
-          cp -f "${pkgs.limine}/share/limine/limine-bios.sys" "$boot/limine-bios.sys"
-          if [ -b "/dev/vda" ]; then
-            ${pkgs.limine}/bin/limine bios-install /dev/vda 1 2>/dev/null || true
-          fi
-        ''}
+          cp -f "$target/kernel" "$boot/nixos/kernel"
+          cp -f "$target/initrd" "$boot/nixos/initrd"
 
-        cat <<EOF > "$boot/limine.conf"
+          ${if pkgs.stdenv.hostPlatform.isAarch64 then ''
+            cp -f "${pkgs.limine}/share/limine/BOOTAA64.EFI" "$boot/EFI/BOOT/BOOTAA64.EFI"
+          '' else ''
+            cp -f "${pkgs.limine}/share/limine/BOOTX64.EFI" "$boot/EFI/BOOT/BOOTX64.EFI"
+            cp -f "${pkgs.limine}/share/limine/limine-bios.sys" "$boot/limine-bios.sys"
+            if [ -b "/dev/vda" ]; then
+              ${pkgs.limine}/bin/limine bios-install /dev/vda 1 2>/dev/null || true
+            fi
+          ''}
+
+          cat <<EOF > "$boot/limine.conf"
 timeout: 0
 /NixOS Minimal
     protocol: linux
-    kernel_path: boot():$(readlink -f "$target/kernel")
+    kernel_path: boot():/nixos/kernel
     cmdline: init=$target/init $(cat "$target/kernel-params")
-    module_path: boot():$(readlink -f "$target/initrd")
+    module_path: boot():/nixos/initrd
 EOF
 
-        sync
-      '');
+          sync
+        '');
 
       # Kernel and Initrd tuning
       boot.kernelParams = [ "audit=0" ];
@@ -90,6 +93,7 @@ EOF
             config.boot.initrd.availableKernelModules
             ++ config.boot.initrd.kernelModules
             ++ [
+              "zram"
               "9p"
               "9pnet"
               "9pnet_virtio"
@@ -137,8 +141,21 @@ EOF
           )
         ];
 
-      # Disable udev hwdb database (eliminate 13.1MB unused PCI/USB human text table)
-      environment.etc."udev/hwdb.bin".enable = false;
+      # Minimal OpenSSH server
+      services.openssh = {
+        enable = true;
+        settings = {
+          PermitRootLogin = "prohibit-password";
+          PasswordAuthentication = false;
+          KbdInteractiveAuthentication = false;
+        };
+        hostKeys = [
+          {
+            path = "/var/lib/ssh/ssh_host_ed25519_key";
+            type = "ed25519";
+          }
+        ];
+      };
 
       # Base shell for login and chroot
       environment.systemPackages = [ pkgs.bashInteractive ];

@@ -48,9 +48,9 @@
         kernelModules = [ ];
         extraModulePackages = [ ];
         kernelParams = [
-          "console=ttyS0,115200n8"
-          "console=ttyAMA0,115200n8"
           "console=tty0"
+          "console=ttyAMA0,115200n8"
+          "console=ttyS0,115200n8"
           "earlycon"
         ];
         supportedFilesystems = lib.mkDefault [

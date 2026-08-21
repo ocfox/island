@@ -281,7 +281,16 @@ writers.writePython3Bin "induo"
     libraries = with python3Packages; [ rich ];
   }
   (
-    builtins.replaceStrings [ "@stage@" "@stateVersion@" ] [ "${stage}" "${lib.trivial.release}" ] (
-      builtins.readFile ./induo.py
-    )
+    builtins.replaceStrings
+      [
+        "@stage@"
+        "@stateVersion@"
+        "@diskoTemplate@"
+      ]
+      [
+        "${stage}"
+        "${lib.trivial.release}"
+        (builtins.readFile ./disko-template.nix)
+      ]
+      (builtins.readFile ./induo.py)
   )

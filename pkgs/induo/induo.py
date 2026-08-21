@@ -171,47 +171,27 @@ class Target:
             )
 
     def reboot(self):
-        quoted_cmd = "'sync; (sleep 0.1; reboot -f 2>/dev/null || systemctl reboot -f 2>/dev/null || reboot 2>/dev/null) >/dev/null 2>&1 & reboot -f 2>/dev/null || true'"
+        cmd = "sync; (sleep 0.1; reboot -f 2>/dev/null || systemctl reboot -f 2>/dev/null || reboot 2>/dev/null) >/dev/null 2>&1 & reboot -f 2>/dev/null || true"
+        quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
         try:
-            if self.user and self.user != "root":
-                self.ensure_sudo()
-                if self.sudo_pw:
-                    subprocess.run(
-                        self.argv()
-                        + [
-                            "-o",
-                            "ConnectTimeout=3",
-                            f"sudo -S -p '' -- sh -c {quoted_cmd}",
-                        ],
-                        input=self.sudo_pw + "\n",
-                        capture_output=True,
-                        text=True,
-                        timeout=3,
-                        check=False,
-                    )
-                else:
-                    subprocess.run(
-                        self.argv()
-                        + [
-                            "-o",
-                            "ConnectTimeout=3",
-                            f"sudo -- sh -c {quoted_cmd}",
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=3,
-                        check=False,
-                    )
-            else:
-                subprocess.run(
-                    self.argv()
-                    + ["-o", "ConnectTimeout=3", f"sh -c {quoted_cmd}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=3,
-                    check=False,
-                )
-        except subprocess.TimeoutExpired:
+            subprocess.run(
+                [
+                    *self.argv()[:-1],
+                    "-o",
+                    "ConnectTimeout=3",
+                    "-o",
+                    "ServerAliveInterval=1",
+                    "-o",
+                    "ServerAliveCountMax=1",
+                    self.argv()[-1],
+                    f"sh -c {quoted_cmd}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=4,
+                check=False,
+            )
+        except (subprocess.TimeoutExpired, Exception):
             pass
 
     def is_stage(self, verbose: bool = False) -> int:
@@ -224,17 +204,27 @@ class Target:
                 console.print(f"[dim]port {p}: TCP connection failed ({e})[/]")
             return 0
         test_target = Target(f"root@{self.host}", port=p)
-        proc = subprocess.run(
-            test_target.argv() + ["test -f /run/induo-stage"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode == 0:
-            return p
-        elif verbose:
-            err_msg = proc.stderr.strip() or f"exit code {proc.returncode}"
-            console.print(f"[dim]port {p}: SSH probe returned ({err_msg})[/]")
+        try:
+            proc = subprocess.run(
+                [
+                    *test_target.argv()[:-1],
+                    "-o",
+                    "ConnectTimeout=2",
+                    test_target.argv()[-1],
+                    "test -f /run/induo-stage",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+            )
+            if proc.returncode == 0:
+                return p
+            elif verbose:
+                err_msg = proc.stderr.strip() or f"exit code {proc.returncode}"
+                console.print(f"[dim]port {p}: SSH probe returned ({err_msg})[/]")
+        except (subprocess.TimeoutExpired, Exception):
+            pass
         return 0
 
 
@@ -378,11 +368,16 @@ def resolve_state_version(repo: Path) -> str:
     )
     if proc.returncode == 0 and proc.stdout.strip():
         return proc.stdout.strip()
-    return "26.11"
+    fail("could not determine stateVersion from flake nixpkgs")
 
 
 def render_host(
-    name: str, p: dict, disk: str, state_version: str = "26.11"
+    name: str,
+    p: dict,
+    disk: str,
+    state_version: str,
+    minimal: bool = False,
+    keys: list[str] | None = None,
 ) -> tuple[str, str]:
     pin_addrs = [
         p[v]["address"]
@@ -392,22 +387,28 @@ def render_host(
     routes = [
         f'          {{ Gateway = "{p[v]["gateway"]}"; GatewayOnLink = true; }}'
         for v in ("v4", "v6")
-        if p.get(v) and not p[v]["dynamic"]
-    ]
-    dhcp = (
-        {("v4",): "ipv6", ("v6",): "ipv4"}.get(
-            tuple(v for v in ("v4", "v6") if p.get(v) and not p[v]["dynamic"]),
-            "yes",
+        if p.get(v)
+        and (
+            not p[v]["dynamic"]
+            or (p[v]["address"].endswith("/128") and p[v].get("gateway"))
         )
-        if pin_addrs
-        else "yes"
-    )
+    ]
+    has_static_v4 = bool(p.get("v4") and not p["v4"]["dynamic"])
+    has_static_v6 = bool(p.get("v6") and not p["v6"]["dynamic"])
+
+    if has_static_v4 and has_static_v6:
+        dhcp = "no"
+    elif has_static_v4:
+        dhcp = "ipv6"
+    elif has_static_v6:
+        dhcp = "ipv4"
+    else:
+        dhcp = "yes"
 
     net_block = []
-    if pin_addrs or routes or dhcp != "yes":
+    if pin_addrs or routes:
         net_block = ['        systemd.network.networks."10-eth0" = {']
-        if dhcp != "yes":
-            net_block.append(f'          networkConfig.DHCP = "{dhcp}";')
+        net_block.append(f'          networkConfig.DHCP = "{dhcp}";')
         if pin_addrs:
             net_block.append(
                 f"          address = [ {' '.join(f'{chr(34)}{a}{chr(34)}' for a in pin_addrs)} ];"
@@ -416,8 +417,40 @@ def render_host(
             net_block += ["          routes = [", *routes, "          ];"]
         net_block.append("        };")
 
-    net_body = ("\n" + "\n".join(net_block)) if net_block else ""
-    default_nix = f"""{{ self, ... }}:
+    net_body = ("\n\n" + "\n".join(net_block)) if net_block else ""
+
+    if minimal:
+        keys_list = (
+            ("\n" + "\n".join(f'              "{k}"' for k in keys) + "\n          ")
+            if keys
+            else " "
+        )
+        keys_block = f"""
+
+        users = {{
+          mutableUsers = false;
+          users.root.openssh.authorizedKeys.keys = [{keys_list}];
+        }};"""
+        default_nix = f"""{{ self, ... }}:
+{{
+  hosts.{name} = {{
+    system = "{p["arch"]}-linux";
+    stateVersion = "{state_version}";
+    useBase = false;
+    module =
+      {{ ... }}:
+      {{
+        imports = with self.modules.nixos; [
+          minimal
+          vps
+          disko
+        ];{keys_block}{net_body}
+      }};
+  }};
+}}
+"""
+    else:
+        default_nix = f"""{{ self, ... }}:
 {{
   hosts.{name} = {{
     system = "{p["arch"]}-linux";
@@ -446,75 +479,35 @@ def render_host(
   }};
 }}
 """
+    disko_template = """@diskoTemplate@"""
+    if disko_template.startswith("@"):
+        tpl_path = Path(__file__).parent / "disko-template.nix"
+        if tpl_path.exists():
+            disko_template = tpl_path.read_text()
 
-    disko_nix = f"""{{
-  flake.modules.nixos.{name}.disko.devices = {{
-    disk.disk1 = {{
-      type = "disk";
-      device = "{disk}";
-      content = {{
-        type = "gpt";
-        partitions = {{
-          MBR = {{
-            type = "EF02";
-            size = "1M";
-            priority = 1;
-          }};
-          ESP = {{
-            type = "EF00";
-            size = "500M";
-            content = {{
-              type = "filesystem";
-              format = "vfat";
-              mountpoint = "/boot";
-              mountOptions = [ "umask=0077" ];
-            }};
-          }};
-          root = {{
-            size = "100%";
-            content = {{
-              type = "btrfs";
-              extraArgs = [ "-f" ];
-              subvolumes = {{
-                "/rootfs" = {{
-                  mountpoint = "/";
-                  mountOptions = [
-                    "compress=zstd"
-                    "noatime"
-                    "x-systemd.growfs"
-                  ];
-                }};
-                "/nix" = {{
-                  mountpoint = "/nix";
-                  mountOptions = [
-                    "compress=zstd"
-                    "noatime"
-                  ];
-                }};
-                "/home" = {{
-                  mountpoint = "/home";
-                  mountOptions = [
-                    "compress=zstd"
-                    "noatime"
-                  ];
-                }};
-              }};
-            }};
-          }};
-        }};
-      }};
-    }};
-  }};
-}}
-"""
+    disko_nix = disko_template.replace("@NAME@", name).replace("@DISK@", disk)
     return default_nix, disko_nix
 
 
-def resolve_keys(repo: Path, name: str, explicit_keys: list[str] | None) -> list[str]:
+def parse_key_arg(k: str) -> str:
+    k = k.strip()
+    if k.startswith(("ssh-", "ecdsa-", "sk-")):
+        return k
+    p = Path(k).expanduser()
+    if p.is_file():
+        return p.read_text().strip()
+    fail(f"key argument {k!r} is neither a valid public key string nor an existing key file")
+
+
+def resolve_keys(
+    repo: Path,
+    name: str,
+    explicit_keys: list[str] | None,
+) -> list[str]:
     if explicit_keys:
-        return [Path(k).read_text().strip() for k in explicit_keys]
-    expr = f""".#nixosConfigurations.{name}.config"""
-    apply = r"c: (c.users.users.${c.my.name}.openssh.authorizedKeys.keys or []) ++ (c.users.users.root.openssh.authorizedKeys.keys or [])"
+        return [parse_key_arg(k) for k in explicit_keys]
+    expr = f".#nixosConfigurations.{name}.config"
+    apply = r"c: builtins.concatLists (builtins.map (u: u.openssh.authorizedKeys.keys) (builtins.attrValues c.users.users))"
     proc = subprocess.run(
         ["nix", "eval", expr, "--apply", apply, "--json"],
         cwd=repo,
@@ -524,13 +517,14 @@ def resolve_keys(repo: Path, name: str, explicit_keys: list[str] | None) -> list
     )
     if proc.returncode == 0:
         try:
-            return json.loads(proc.stdout)
+            keys = json.loads(proc.stdout)
+            if keys:
+                return keys
         except json.JSONDecodeError:
             pass
-    local_pubs = list(Path.home().glob(".ssh/*.pub"))
-    if local_pubs:
-        return [p.read_text().strip() for p in local_pubs]
-    fail("no authorized keys found in nixos config or ~/.ssh/*.pub")
+    fail(
+        f"no authorized SSH keys found in nixos configuration for '{name}'; please add your public key to modules/hosts/{name}/default.nix or pass --key"
+    )
 
 
 def build_image(repo: Path, name: str) -> tuple[Path, int, bool]:
@@ -877,8 +871,14 @@ def cmd_gen(args):
         return
 
     host_dir.mkdir(parents=True, exist_ok=True)
+    keys = [parse_key_arg(k) for k in args.key] if args.key else []
     def_content, disko_content = render_host(
-        name, p, disk, state_version=resolve_state_version(repo)
+        name,
+        p,
+        disk,
+        state_version=resolve_state_version(repo),
+        minimal=args.minimal,
+        keys=keys,
     )
     host_file.write_text(def_content)
     disko_file.write_text(disko_content)
@@ -891,6 +891,10 @@ def cmd_gen(args):
     console.print(
         f"[bold green]generated configuration:[/] {host_file.relative_to(repo)} & {disko_file.relative_to(repo)}"
     )
+    if args.minimal and not keys:
+        console.print(
+            f"[yellow]notice: remember to add your ssh public key to[/] [bold]{host_file.relative_to(repo)}[/] [yellow]before running induo write[/]"
+        )
     console.print(f"next: [bold]induo write {target.raw} --name {name}[/]")
 
 
@@ -912,6 +916,7 @@ def cmd_write(args):
         stage_target = Target(f"root@{target.host}", port=stage_port)
         write_disk(stage_target, image, disk, is_compressed=is_compressed)
         stage_target.reboot()
+        time.sleep(3)
         if wait_port(target.host, 22, 600, "NixOS"):
             console.print(f"[bold green]{name} is up:[/] ssh root@{target.host}")
         return
@@ -955,6 +960,7 @@ def cmd_write(args):
     stage_target = Target(f"root@{target.host}", port=stage_port)
     write_disk(stage_target, image, disk, is_compressed=is_compressed)
     stage_target.reboot()
+    time.sleep(3)
     if wait_port(target.host, 22, 600, "NixOS"):
         console.print(f"[bold green]{name} is up:[/] ssh root@{target.host}")
     else:
@@ -976,6 +982,17 @@ def main():
     p_gen.add_argument("--name", help="Flake host attribute name")
     p_gen.add_argument("--disk", help="Target disk")
     p_gen.add_argument(
+        "--key",
+        "-k",
+        action="append",
+        help="Public key file or raw SSH public key string",
+    )
+    p_gen.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Generate minimal appliance profile (sub-200MB, 0 Python/Nix, root SSH key)",
+    )
+    p_gen.add_argument(
         "--force",
         "-f",
         action="store_true",
@@ -988,7 +1005,12 @@ def main():
     p_write.add_argument("target", help="SSH target (e.g. root@host or user@host)")
     p_write.add_argument("--name", help="Flake host attribute name")
     p_write.add_argument("--disk", help="Target disk to overwrite")
-    p_write.add_argument("--key", action="append", help="Public key file for Stage SSH")
+    p_write.add_argument(
+        "--key",
+        "-k",
+        action="append",
+        help="Public key file or raw SSH public key string for Stage SSH",
+    )
     p_write.add_argument(
         "--timeout",
         type=int,
