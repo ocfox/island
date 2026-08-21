@@ -19,6 +19,10 @@ in
             type = lib.types.nullOr lib.types.str;
             default = null;
           };
+          useBase = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+          };
           module = lib.mkOption { type = lib.types.deferredModule; };
         };
       }
@@ -39,13 +43,13 @@ in
           in
           [
             host.module
-            nixos.base
             { system.stateVersion = host.stateVersion; }
             {
               networking.hostName = name;
               nixpkgs.hostPlatform = host.system;
             }
           ]
+          ++ optional host.useBase nixos.base
           ++ optional (host.hostKey != null) {
             imports = [ config.flake.kix.nixosModule ];
             kix.hostPubkey = host.hostKey;

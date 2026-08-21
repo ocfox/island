@@ -1,5 +1,5 @@
 {
-  flake.modules.nixos.minimal.disko.devices = {
+  flake.modules.nixos.minimal-disko.disko.devices = {
     disk.disk1 = {
       type = "disk";
       device = "/dev/vda";
