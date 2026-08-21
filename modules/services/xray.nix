@@ -22,6 +22,10 @@
       config = lib.mkIf cfg.enable {
         kix.secrets.${cfg.secretName} = { };
         services.xray.settingsFile = lib.mkDefault config.kix.secrets.${cfg.secretName}.path;
+        systemd.services.xray = {
+          wants = [ "kix-activate.service" ];
+          after = [ "kix-activate.service" ];
+        };
       };
     };
 }

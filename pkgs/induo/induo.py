@@ -171,31 +171,48 @@ class Target:
             )
 
     def reboot(self):
-        quoted_cmd = "'systemctl reboot -f 2>/dev/null || systemctl reboot 2>/dev/null || reboot -f 2>/dev/null || reboot 2>/dev/null'"
-        if self.user and self.user != "root":
-            self.ensure_sudo()
-            if self.sudo_pw:
-                subprocess.run(
-                    self.argv() + [f"sudo -S -p '' -- sh -c {quoted_cmd}"],
-                    input=self.sudo_pw + "\n",
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
+        quoted_cmd = "'sync; (sleep 0.1; reboot -f 2>/dev/null || systemctl reboot -f 2>/dev/null || reboot 2>/dev/null) >/dev/null 2>&1 & reboot -f 2>/dev/null || true'"
+        try:
+            if self.user and self.user != "root":
+                self.ensure_sudo()
+                if self.sudo_pw:
+                    subprocess.run(
+                        self.argv()
+                        + [
+                            "-o",
+                            "ConnectTimeout=3",
+                            f"sudo -S -p '' -- sh -c {quoted_cmd}",
+                        ],
+                        input=self.sudo_pw + "\n",
+                        capture_output=True,
+                        text=True,
+                        timeout=3,
+                        check=False,
+                    )
+                else:
+                    subprocess.run(
+                        self.argv()
+                        + [
+                            "-o",
+                            "ConnectTimeout=3",
+                            f"sudo -- sh -c {quoted_cmd}",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=3,
+                        check=False,
+                    )
             else:
                 subprocess.run(
-                    self.argv() + [f"sudo -- sh -c {quoted_cmd}"],
+                    self.argv()
+                    + ["-o", "ConnectTimeout=3", f"sh -c {quoted_cmd}"],
                     capture_output=True,
                     text=True,
+                    timeout=3,
                     check=False,
                 )
-        else:
-            subprocess.run(
-                self.argv() + [f"sh -c {quoted_cmd}"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+        except subprocess.TimeoutExpired:
+            pass
 
     def is_stage(self, verbose: bool = False) -> int:
         p = self.port or 22

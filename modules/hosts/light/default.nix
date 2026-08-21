@@ -3,7 +3,7 @@
   hosts.light = {
     system = "x86_64-linux";
     stateVersion = "26.11";
-    hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXqpaUrrGe+JsXLzdgxkX10J8jzVXLss0JfpQVO/bOX root@nixos";
+    hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINs0oUIkUAWkBfAMb/99WTWchSe2SR4GXMkiRjFK8RsM root@rand";
     module =
       { config, ... }:
       {
@@ -27,7 +27,7 @@
         };
 
         systemd.network.networks."10-eth0".address = [
-          "2406:da14:1200:e700:6a1a:86de:a0e8:f695/128"
+          "2406:da14:1200:e700:5300:1ca6:22cb:2e26/128"
         ];
 
         services.xray = {
