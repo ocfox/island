@@ -30,6 +30,14 @@ STAGE = os.environ.get("INDUO_STAGE", "@stage@")
 REMOTE_DIR = "/var/tmp/induo"
 STATE_VERSION = os.environ.get("INDUO_STATE_VERSION", "@stateVersion@")
 SSH_OPTS = [
+    "-c",
+    "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr",
+    "-o",
+    "Compression=no",
+    "-o",
+    "IPQoS=none",
+    "-o",
+    "TCPKeepAlive=yes",
     "-o",
     "ConnectTimeout=10",
     "-o",
@@ -74,24 +82,31 @@ class Target:
     def ensure_sudo(self):
         if self._checked_sudo or not self.user or self.user == "root":
             return
-        self._checked_sudo = True
         proc = subprocess.run(
             self.argv() + ["sudo -n true"],
             capture_output=True,
             text=True,
             check=False,
         )
-        if proc.returncode != 0:
+        if proc.returncode == 0:
+            self._checked_sudo = True
+            return
+
+        for _ in range(3):
             self.sudo_pw = getpass.getpass(f"induo: sudo password for {self.dest}: ")
             pw_check = subprocess.run(
-                self.argv() + ["sudo -S -p '' true"],
+                self.argv() + ["sudo -S -p '' -- true"],
                 input=self.sudo_pw + "\n",
                 capture_output=True,
                 text=True,
                 check=False,
             )
-            if pw_check.returncode != 0:
-                fail("incorrect sudo password")
+            if pw_check.returncode == 0:
+                self._checked_sudo = True
+                return
+            console.print("[red]incorrect sudo password, please try again[/]")
+
+        fail("incorrect sudo password (3 attempts failed)")
 
     def run(self, cmd: str, check: bool = True, sudo: bool = False) -> str:
         quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
@@ -99,7 +114,7 @@ class Target:
             self.ensure_sudo()
             if self.sudo_pw:
                 proc = subprocess.run(
-                    self.argv() + [f"sudo -S -p '' sh -c {quoted_cmd}"],
+                    self.argv() + [f"sudo -S -p '' -- sh -c {quoted_cmd}"],
                     input=self.sudo_pw + "\n",
                     capture_output=True,
                     text=True,
@@ -107,7 +122,7 @@ class Target:
                 )
             else:
                 proc = subprocess.run(
-                    self.argv() + [f"sudo sh -c {quoted_cmd}"],
+                    self.argv() + [f"sudo -- sh -c {quoted_cmd}"],
                     capture_output=True,
                     text=True,
                     check=False,
@@ -126,50 +141,83 @@ class Target:
             )
         return proc.stdout
 
-    def pipe(self, data: bytes | Path, remote_file: str):
+    def pipe(self, data: bytes | Path, remote_file: str, on_chunk=None):
         payload = data if isinstance(data, bytes) else data.read_bytes()
-        proc = subprocess.run(
-            self.argv() + [f"sh -c \"cat > '{remote_file}'\""],
-            input=payload,
-            capture_output=True,
-            check=False,
+        proc = subprocess.Popen(
+            self.argv() + [f"cat > '{remote_file}'"],
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
+        chunk_size = 256 * 1024
+        try:
+            for i in range(0, len(payload), chunk_size):
+                chunk = payload[i : i + chunk_size]
+                proc.stdin.write(chunk)
+                proc.stdin.flush()
+                if on_chunk:
+                    on_chunk(len(chunk))
+        except (BrokenPipeError, OSError):
+            pass
+        finally:
+            try:
+                proc.stdin.close()
+            except (BrokenPipeError, OSError):
+                pass
+        stderr = proc.stderr.read()
+        proc.wait()
         if proc.returncode != 0:
-            fail(f"pipe to {remote_file}: {proc.stderr.decode().strip()}")
+            fail(
+                f"pipe to {remote_file}: {stderr.decode().strip() or f'exit code {proc.returncode}'}"
+            )
 
-    def detach(self, cmd: str, sudo: bool = False):
-        if sudo and self.user and self.user != "root":
+    def reboot(self):
+        quoted_cmd = "'systemctl reboot -f 2>/dev/null || systemctl reboot 2>/dev/null || reboot -f 2>/dev/null || reboot 2>/dev/null'"
+        if self.user and self.user != "root":
             self.ensure_sudo()
-            quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
             if self.sudo_pw:
-                quoted_pw = "'" + self.sudo_pw.replace("'", "'\\''") + "'"
-                cmd_to_run = f"nohup sh -c 'echo {quoted_pw} | sudo -S -p \"\" {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+                subprocess.run(
+                    self.argv() + [f"sudo -S -p '' -- sh -c {quoted_cmd}"],
+                    input=self.sudo_pw + "\n",
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
             else:
-                cmd_to_run = (
-                    f"nohup sh -c 'sudo {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+                subprocess.run(
+                    self.argv() + [f"sudo -- sh -c {quoted_cmd}"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
         else:
-            quoted = "'" + cmd.replace("'", "'\\''") + "'"
-            cmd_to_run = f"nohup sh -c {quoted} </dev/null >/dev/null 2>&1 &"
-        subprocess.run(self.argv() + [cmd_to_run], capture_output=True, check=False)
+            subprocess.run(
+                self.argv() + [f"sh -c {quoted_cmd}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
 
-    def is_stage(self) -> int:
-        for p in (22, 2222):
-            try:
-                with socket.create_connection((self.host, p), timeout=1.5) as s:
-                    if s.recv(1024).startswith(b"SSH-"):
-                        test_target = Target(f"root@{self.host}", port=p)
-                        if (
-                            subprocess.run(
-                                test_target.argv() + ["test -f /run/induo-stage"],
-                                capture_output=True,
-                                check=False,
-                            ).returncode
-                            == 0
-                        ):
-                            return p
-            except OSError:
+    def is_stage(self, verbose: bool = False) -> int:
+        p = self.port or 22
+        try:
+            with socket.create_connection((self.host, p), timeout=1.5):
                 pass
+        except OSError as e:
+            if verbose:
+                console.print(f"[dim]port {p}: TCP connection failed ({e})[/]")
+            return 0
+        test_target = Target(f"root@{self.host}", port=p)
+        proc = subprocess.run(
+            test_target.argv() + ["test -f /run/induo-stage"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode == 0:
+            return p
+        elif verbose:
+            err_msg = proc.stderr.strip() or f"exit code {proc.returncode}"
+            console.print(f"[dim]port {p}: SSH probe returned ({err_msg})[/]")
         return 0
 
 
@@ -470,14 +518,14 @@ def resolve_keys(repo: Path, name: str, explicit_keys: list[str] | None) -> list
 
 def build_image(repo: Path, name: str) -> tuple[Path, int, bool]:
     attr_disko = f".#nixosConfigurations.{name}.config.system.build.diskoImages"
-    console.print(f"[dim]building {attr_disko}[/]")
-    proc = subprocess.run(
-        ["nix", "build", attr_disko, "--no-link", "--print-out-paths"],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    with console.status(f"building {attr_disko}"):
+        proc = subprocess.run(
+            ["nix", "build", attr_disko, "--no-link", "--print-out-paths"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
     if proc.returncode != 0:
         fail(f"nix build {attr_disko} failed: {proc.stderr}")
 
@@ -539,58 +587,164 @@ def make_stage_initrd(keys: list[str], p: dict) -> bytes:
         )
     )
     buf.write(cpio_entry("TRAILER!!!", b"", 0))
-    buf.write(Path(f"{STAGE}/initrd").read_bytes())
-    return buf.getvalue()
+    raw = Path(f"{STAGE}/initrd").read_bytes()
+    pos = raw.rfind(b"TRAILER!!!")
+    raw_without_trailer = raw[: pos - 110] if pos != -1 else raw
+    combined = raw_without_trailer + buf.getvalue()
+    proc = subprocess.run(
+        ["zstd", "-T0", "-3", "-q"],
+        input=combined,
+        capture_output=True,
+        check=False,
+    )
+    return proc.stdout if proc.returncode == 0 and proc.stdout else combined
+
+
+def check_remote_space(target: Target, stage_sz: int, grub_sz: int):
+    """Verify target host has enough disk space in /var/tmp, /boot, and /efi before deploying."""
+    check_cmd = """
+df -k /var/tmp /boot / 2>/dev/null | awk 'NR>1 {print $6, $4}'
+for d in $(findmnt -t fat,vfat -n -o TARGET 2>/dev/null) /efi /boot/efi /boot/EFI; do
+  [ -d "$d" ] && df -k "$d" 2>/dev/null | awk 'NR>1 {print "EFI:"$6, $4}'
+done
+"""
+    output = target.run(check_cmd, check=False, sudo=False)
+    if not output:
+        return
+    stage_kib = (stage_sz // 1024) + 10240  # stage size + 10MB safety margin
+    grub_kib = (grub_sz // 1024) + 2048  # grub size + 2MB safety margin
+    for line in output.splitlines():
+        parts = line.strip().split()
+        if len(parts) == 2:
+            mount, free_kib_str = parts
+            try:
+                free_kib = int(free_kib_str)
+            except ValueError:
+                continue
+            if mount.startswith("EFI:"):
+                efi_mount = mount[4:]
+                if free_kib < grub_kib:
+                    fail(
+                        f"insufficient disk space on ESP partition {efi_mount}: "
+                        f"{free_kib // 1024} MiB free, needs at least {grub_kib // 1024} MiB"
+                    )
+            elif mount in ("/var/tmp", "/boot", "/"):
+                if free_kib < stage_kib:
+                    fail(
+                        f"insufficient disk space on {mount}: "
+                        f"{free_kib // 1024} MiB free, needs at least {stage_kib // 1024} MiB"
+                    )
 
 
 def deploy_and_boot_stage(target: Target, p: dict, initrd: bytes, timeout: int):
     k_path, g_path = Path(f"{STAGE}/kernel"), Path(f"{STAGE}/grub.efi")
-    total_sz = (
-        k_path.stat().st_size
-        + len(initrd)
-        + (g_path.stat().st_size if g_path.exists() else 0)
-    )
-    console.print(
-        f"stage [bold]{total_sz / (1024 * 1024):.1f} MiB[/] -> {target.raw}:{REMOTE_DIR}"
-    )
+    g_sz = g_path.stat().st_size if g_path.exists() else 0
+    total_sz = k_path.stat().st_size + len(initrd) + g_sz
 
+    target.ensure_sudo()
     target.run(
-        f"rm -rf {REMOTE_DIR} && mkdir -p {REMOTE_DIR} && chown -R $USER:$USER {REMOTE_DIR}",
+        f"rm -rf {REMOTE_DIR} /boot/induo /induo /efi/induo /boot/efi/induo /boot/EFI/induo && mkdir -p {REMOTE_DIR} && chmod 777 {REMOTE_DIR}",
         sudo=True,
     )
-    target.pipe(k_path, f"{REMOTE_DIR}/kernel")
-    target.pipe(initrd, f"{REMOTE_DIR}/initrd")
-    if g_path.exists():
-        target.pipe(g_path, f"{REMOTE_DIR}/grub.efi")
+    check_remote_space(target, total_sz, g_sz)
+
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task(
+            f"stage -> {target.dest}:{REMOTE_DIR}", total=total_sz
+        )
+        for data, remote_path in [
+            (k_path, f"{REMOTE_DIR}/kernel"),
+            (initrd, f"{REMOTE_DIR}/initrd"),
+            *((g_path, f"{REMOTE_DIR}/grub.efi") for _ in (1,) if g_path.exists()),
+        ]:
+            target.pipe(
+                data,
+                remote_path,
+                on_chunk=lambda n: progress.update(task, advance=n),
+            )
 
     boot_sh = f"""set -e
+cmdline="console=tty0 console=ttyS0,115200n8 console=ttyAMA0,115200n8 earlycon panic=10 net.ifnames=0 induo.timeout={timeout}"
+
+# 1. Clean up old failed files on ESP to immediately free up space
+rm -rf /efi/induo /boot/efi/induo /boot/EFI/induo
+
+# 2. Put kernel & initrd in /boot/induo (root filesystem has gigabytes of free space)
 mkdir -p /boot/induo /induo
 cp -f {REMOTE_DIR}/kernel /boot/induo/kernel && cp -f {REMOTE_DIR}/initrd /boot/induo/initrd
 cp -f {REMOTE_DIR}/kernel /induo/kernel 2>/dev/null || true && cp -f {REMOTE_DIR}/initrd /induo/initrd 2>/dev/null || true
-if [ -d /sys/firmware/efi ]; then
-  for d in $(findmnt -t fat,vfat -n -o TARGET 2>/dev/null | grep -Ex '/efi|/boot/efi|/boot') /boot/efi /boot/EFI /efi /boot; do
-    [ -d "$d" ] || continue
+
+# 3. EFI systems: copy ONLY the 11MB grub.efi to ESP partition
+for d in $(findmnt -t fat,vfat -n -o TARGET 2>/dev/null) /efi /boot/efi /boot/EFI /boot; do
+  [ -d "$d" ] || continue
+  mkdir -p "$d/EFI/induo"
+  cp -f {REMOTE_DIR}/grub.efi "$d/EFI/induo/grub.efi" 2>/dev/null || true
+
+  # 3a. efibootmgr: Direct UEFI BootNext via grub.efi
+  if [ -d /sys/firmware/efi ] && command -v efibootmgr >/dev/null 2>&1; then
     part=$(findmnt -n -o SOURCE "$d" 2>/dev/null || df "$d" | awk 'NR==2{{print $1}}')
-    [ -b "$part" ] || continue
-    disk=$(lsblk -rn --inverse "$part" 2>/dev/null | awk '$6=="disk"{{print $1}}' | head -1)
-    [ -z "$disk" ] && disk=$(echo "$part" | sed -E 's/p?[0-9]+$//' | sed 's|/dev/||')
-    pnum=$(echo "$part" | grep -oE '[0-9]+$')
-    mkdir -p "$d/EFI/induo" && cp -f {REMOTE_DIR}/grub.efi "$d/EFI/induo/grub.efi"
-    for b in $(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*'); do efibootmgr -B -b "$b" >/dev/null 2>&1 || true; done
-    if efibootmgr -c -d "/dev/$disk" -p "$pnum" -L "induo" -l "\\EFI\\induo\\grub.efi" >/dev/null 2>&1; then
-      b=$(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*' | head -1)
-      [ -n "$b" ] && efibootmgr -n "$b" >/dev/null 2>&1 && echo "BOOT_EFI" && exit 0
+    if [ -b "$part" ]; then
+      disk=$(lsblk -rn --inverse "$part" 2>/dev/null | awk '$6=="disk"{{print $1}}' | head -1)
+      [ -z "$disk" ] && disk=$(echo "$part" | sed -E 's/p?[0-9]+$//' | sed 's|/dev/||')
+      pnum=$(echo "$part" | grep -oE '[0-9]+$')
+      for b in $(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*'); do efibootmgr -B -b "$b" >/dev/null 2>&1 || true; done
+      if efibootmgr -c -d "/dev/$disk" -p "$pnum" -L "induo" -l "\\EFI\\induo\\grub.efi" >/dev/null 2>&1; then
+        b=$(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*' | head -1)
+        [ -n "$b" ] && efibootmgr -n "$b" >/dev/null 2>&1 && echo "BOOT_EFI" && exit 0
+      fi
     fi
-  done
+  fi
+
+  # 3b. systemd-boot: Chainload grub.efi via Type #2 BLS entry (needs ONLY 11MB in ESP)
+  if [ -d "$d/loader/entries" ]; then
+    cat << 'EOF' > "$d/loader/entries/induo.conf"
+title induo-stage
+efi /EFI/induo/grub.efi
+EOF
+    if command -v bootctl >/dev/null 2>&1; then
+      if bootctl set-oneshot induo.conf >/dev/null 2>&1 || bootctl set-default induo.conf >/dev/null 2>&1; then
+        echo "BOOT_SYSTEMD_BOOT"
+        exit 0
+      fi
+    elif [ -f "$d/loader/loader.conf" ]; then
+      sed -i 's/^default .*/default induo.conf/' "$d/loader/loader.conf"
+      echo "BOOT_SYSTEMD_BOOT_MANUAL"
+      exit 0
+    fi
+  fi
+done
+
+# 4. GRUB (BIOS or local Linux GRUB)
+if command -v grub2-reboot >/dev/null 2>&1 || command -v grub-reboot >/dev/null 2>&1; then
+  printf 'set timeout=3\\nmenuentry "induo-stage" {{\\n  search --no-floppy --file --set=root /boot/induo/kernel\\n  linux ($root)/boot/induo/kernel '"$cmdline"'\\n  initrd ($root)/boot/induo/initrd\\n}}\\n' | tee /boot/grub2/custom.cfg /boot/grub/custom.cfg /etc/grub.d/40_custom >/dev/null 2>&1 || true
+  if grub2-reboot "induo-stage" 2>/dev/null || grub-reboot "induo-stage" 2>/dev/null; then
+    echo "BOOT_GRUB"
+    exit 0
+  fi
 fi
-cmdline="console=tty0 console=ttyS0,115200n8 console=ttyAMA0,115200n8 earlycon panic=10 net.ifnames=0 induo.timeout={timeout}"
-printf 'set timeout=3\\nmenuentry "induo-stage" {{\\n  search --no-floppy --file --set=root /boot/induo/kernel\\n  linux ($root)/boot/induo/kernel '"$cmdline"'\\n  initrd ($root)/boot/induo/initrd\\n}}\\n' | tee /boot/grub2/custom.cfg /boot/grub/custom.cfg /etc/grub.d/40_custom >/dev/null 2>&1 || true
-grub2-reboot "induo-stage" 2>/dev/null || grub-reboot "induo-stage" 2>/dev/null || true
-echo "BOOT_GRUB"
+
+for l in /boot/limine.conf /boot/limine.cfg /efi/limine.conf /limine.conf; do
+  if [ -f "$l" ]; then
+    printf '\\n/induo-stage\\n  protocol: linux\\n  path: boot():/boot/induo/kernel\\n  cmdline: %s\\n  module_path: boot():/boot/induo/initrd\\n' "$cmdline" >> "$l"
+    echo "BOOT_LIMINE"
+    exit 0
+  fi
+done
+
+echo "induo: could not configure any supported bootloader (systemd-boot, efibootmgr, grub, limine)" >&2
+exit 1
 """
-    mode = target.run(boot_sh, sudo=True).strip().splitlines()[-1]
+    with console.status("configuring next boot on target host..."):
+        mode = target.run(boot_sh, sudo=True).strip().splitlines()[-1]
     console.print(f"[dim]rebooting via {mode.lower()}...[/]")
-    target.detach("reboot -f || reboot", sudo=True)
+    target.reboot()
 
 
 def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = False):
@@ -600,12 +754,6 @@ def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = Fal
     )
 
     ssh_cmd = target.argv() + [
-        "-c",
-        "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr",
-        "-o",
-        "Compression=no",
-        "-o",
-        "IPQoS=throughput",
         f"zstd -dc | dd of={disk} bs=4M conv=fsync status=none",
     ]
 
@@ -746,7 +894,7 @@ def cmd_write(args):
         image, _, is_compressed = build_image(repo, name)
         stage_target = Target(f"root@{target.host}", port=stage_port)
         write_disk(stage_target, image, disk, is_compressed=is_compressed)
-        stage_target.detach("sync; reboot -f")
+        stage_target.reboot()
         if wait_port(target.host, 22, 600, "NixOS"):
             console.print(f"[bold green]{name} is up:[/] ssh root@{target.host}")
         return
@@ -771,10 +919,15 @@ def cmd_write(args):
     deploy_and_boot_stage(target, p, make_stage_initrd(keys, p), args.timeout)
 
     stage_port = 0
-    deadline = time.monotonic() + 300
-    with console.status(f"waiting for RAM stage on {target.host}"):
+    start_wait = time.monotonic()
+    deadline = start_wait + 300
+    with console.status(f"waiting for RAM stage on {target.host}") as status:
         while time.monotonic() < deadline:
-            if stage_port := target.is_stage():
+            elapsed = int(time.monotonic() - start_wait)
+            status.update(
+                f"waiting for RAM stage on {target.host} ([bold]{elapsed}s[/] elapsed)"
+            )
+            if stage_port := target.is_stage(verbose=args.verbose):
                 break
             time.sleep(3)
 
@@ -784,7 +937,7 @@ def cmd_write(args):
     console.print(f"stage is up: [dim]ssh -p {stage_port} root@{target.host}[/]")
     stage_target = Target(f"root@{target.host}", port=stage_port)
     write_disk(stage_target, image, disk, is_compressed=is_compressed)
-    stage_target.detach("sync; reboot -f")
+    stage_target.reboot()
     if wait_port(target.host, 22, 600, "NixOS"):
         console.print(f"[bold green]{name} is up:[/] ssh root@{target.host}")
     else:
@@ -824,6 +977,12 @@ def main():
         type=int,
         default=180,
         help="Stage watchdog timeout in seconds",
+    )
+    p_write.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed probing logs during stage detection",
     )
 
     args = ap.parse_args()

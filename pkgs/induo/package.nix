@@ -18,20 +18,17 @@ let
   modules = runCommand "induo-modules" { nativeBuildInputs = [ pkgsStatic.kmod ]; } ''
     src=${kernel.modules}/lib/modules/${ver}
     dst=$out/lib/modules/${ver}
-    mkdir -p "$dst"
+    mkdir -p "$dst/kernel"
 
     for f in modules.builtin modules.builtin.modinfo modules.order; do
       if [ -e "$src/$f" ]; then cp "$src/$f" "$dst/$f"; fi
     done
 
-    mkdir -p "$dst/kernel/drivers"
-    for mod in virtio net/ethernet/amazon net/ethernet/google net/ethernet/intel net/ethernet/mellanox net/ethernet/vmware net/xen-netfront block nvme scsi ata hv; do
-      if [ -d "$src/kernel/drivers/$mod" ]; then
-        mkdir -p "$dst/kernel/drivers/$(dirname "$mod")"
-        cp -r "$src/kernel/drivers/$mod" "$dst/kernel/drivers/$mod"
-      fi
-    done
-
+    cp -r "$src/kernel" "$dst/"
+    chmod -R u+w "$dst"
+    rm -rf "$dst"/kernel/drivers/{gpu,media,sound,staging,iio,hid,infiniband,bluetooth,w1,hwmon}
+    rm -rf "$dst"/kernel/drivers/net/{wireless,wwan,usb,can,ieee802154}
+    rm -rf "$dst"/kernel/sound
     depmod -b "$out" ${ver}
   '';
 
@@ -93,8 +90,8 @@ let
     chmod 600 /etc/dropbear/* 2>/dev/null || true
     chmod 700 /root /root/.ssh 2>/dev/null || true
     chmod 600 /root/.ssh/authorized_keys 2>/dev/null || true
-    echo "induo: starting dropbear on 22 and 2222 with 8MB receive window"
-    dropbear -E -s -g -W 8388608 -r /etc/dropbear/dropbear_ed25519_host_key -r /etc/dropbear/dropbear_rsa_host_key -p 22 -p 2222 &
+    echo "induo: starting dropbear on port 22 with 8MB receive window"
+    dropbear -E -s -g -W 8388608 -r /etc/dropbear/dropbear_ed25519_host_key -r /etc/dropbear/dropbear_rsa_host_key -p 22 &
     echo "=== INDUO RAM STAGE READY FOR SSH ==="
 
     TIMEOUT=180
@@ -141,7 +138,7 @@ let
 
   initrd = makeInitrdNG {
     name = "induo-initrd";
-    compressor = "zstd";
+    compressor = "cat";
     contents = [
       {
         source = "${env}/init";
@@ -176,7 +173,7 @@ let
         target = "/etc/group";
       }
       {
-        source = writeText "nsswitch.conf" "passwd: files\ngroup: files\nshadow: files\n";
+        source = writeText "nsswitch.conf" "passwd: files\ngroup: files\nshadow: files\nhosts: files\n";
         target = "/etc/nsswitch.conf";
       }
       {
@@ -191,16 +188,18 @@ let
     insmod gzio
     insmod part_gpt
     insmod part_msdos
+    insmod fat
     insmod ext2
     insmod xfs
     insmod btrfs
-    search --no-floppy --file --set=root /induo/kernel
+    search --no-floppy --file --set=root /boot/induo/kernel
     if [ -f ($root)/boot/induo/kernel ]; then
-      linux /boot/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
-      initrd /boot/induo/initrd
+      linux ($root)/boot/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
+      initrd ($root)/boot/induo/initrd
     else
-      linux /induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
-      initrd /induo/initrd
+      search --no-floppy --file --set=root /induo/kernel
+      linux ($root)/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
+      initrd ($root)/induo/initrd
     fi
     boot
   '';
@@ -212,19 +211,15 @@ let
       {
         nativeBuildInputs = [
           grub2_efi
-          gnutar
         ];
       }
       ''
-        mkdir -p memdisk/boot/grub $out
-        cp ${grubEarlyCfg} memdisk/boot/grub/grub.cfg
-        tar -cf memdisk.tar -C memdisk boot
-        grub-mkimage \
+        mkdir -p $out
+        grub-mkstandalone \
           -O ${grubFormat} \
           -o $out/grub.efi \
-          -p "(memdisk)/boot/grub" \
-          -m memdisk.tar \
-          memdisk tar normal minicmd serial ls echo test cat reboot halt linux search all_video part_msdos part_gpt fat ext2 xfs btrfs gzio zstd configfile
+          --modules="normal minicmd serial ls echo test cat reboot halt linux search all_video part_msdos part_gpt fat ext2 xfs btrfs gzio zstd configfile" \
+          "boot/grub/grub.cfg=${grubEarlyCfg}"
       '';
 
   stage = runCommand "induo-stage" { } ''

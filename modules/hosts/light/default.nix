@@ -5,61 +5,30 @@
     stateVersion = "26.11";
     hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXqpaUrrGe+JsXLzdgxkX10J8jzVXLss0JfpQVO/bOX root@nixos";
     module =
-      { config, lib, ... }:
+      { config, ... }:
       {
         imports = with self.modules.nixos; [
           vps
+          disko
           xray
         ];
 
-        fileSystems."/" = {
-          device = "/dev/disk/by-uuid/f7aa78d3-e86c-4bd4-ac54-445d0a66b19a";
-          fsType = "ext4";
+        boot.loader = {
+          grub.enable = false;
+          efi.canTouchEfiVariables = false;
+          limine = {
+            enable = true;
+            efiSupport = true;
+            efiInstallAsRemovable = true;
+            biosSupport = true;
+            biosDevice = "/dev/nvme0n1";
+            partitionIndex = 1;
+          };
         };
 
-        fileSystems."/efi" = {
-          device = "/dev/disk/by-uuid/0B6D-4B56";
-          fsType = "vfat";
-          options = [
-            "fmask=0077"
-            "dmask=0077"
-          ];
-        };
-        swapDevices = [
-          {
-            device = "/swapfile";
-            size = 2048;
-          }
-        ];
-        zramSwap.enable = true;
-
-        # AWS hands out IPv6 over stateful DHCPv6, which never yielded an
-        # address here -- only the link-local. The address is pinned to the
-        # ENI, so write it in; the default route still comes from the RA.
         systemd.network.networks."10-eth0".address = [
           "2406:da14:1200:e700:6a1a:86de:a0e8:f695/128"
         ];
-
-        boot.loader.grub.enable = false;
-        boot.loader.systemd-boot.enable = true;
-        boot.loader.efi = {
-          canTouchEfiVariables = true;
-          efiSysMountPoint = "/efi";
-        };
-
-        # 20 GB of disk.
-        documentation.enable = false;
-        # man is not gated by documentation.enable.
-        documentation.man.enable = false;
-        services.pcscd.enable = lib.mkForce false;
-        nix.extraOptions = lib.mkForce ''
-          experimental-features = nix-command flakes ca-derivations
-        '';
-        nix.gc.options = lib.mkForce "--delete-older-than 7d";
-        # Both pin the whole nixpkgs source into the closure.
-        nix.registry = lib.mkForce { };
-        nix.settings.nix-path = lib.mkForce [ ];
-        system.tools.nixos-rebuild.enable = false;
 
         services.xray = {
           enable = true;
