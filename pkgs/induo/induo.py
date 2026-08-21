@@ -28,11 +28,16 @@ err = Console(stderr=True, highlight=False)
 
 STAGE = os.environ.get("INDUO_STAGE", "@stage@")
 REMOTE_DIR = "/var/tmp/induo"
+STATE_VERSION = os.environ.get("INDUO_STATE_VERSION", "@stateVersion@")
 SSH_OPTS = [
-    "-o", "ConnectTimeout=10",
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "UserKnownHostsFile=/dev/null",
-    "-o", "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "StrictHostKeyChecking=no",
+    "-o",
+    "UserKnownHostsFile=/dev/null",
+    "-o",
+    "BatchMode=yes",
 ]
 
 
@@ -54,7 +59,9 @@ class Target:
     def __init__(self, target: str, port: int = 22):
         self.raw = target
         self.port = port
-        self.user, _, self.host = target.rpartition("@") if "@" in target else ("", "", target)
+        self.user, _, self.host = (
+            target.rpartition("@") if "@" in target else ("", "", target)
+        )
         self.host = self.host.strip("[]")
         self.dest = f"{self.user}@{self.host}" if self.user else self.host
         self.sudo_pw: str | None = None
@@ -68,7 +75,12 @@ class Target:
         if self._checked_sudo or not self.user or self.user == "root":
             return
         self._checked_sudo = True
-        proc = subprocess.run(self.argv() + ["sudo -n true"], capture_output=True, text=True, check=False)
+        proc = subprocess.run(
+            self.argv() + ["sudo -n true"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         if proc.returncode != 0:
             self.sudo_pw = getpass.getpass(f"induo: sudo password for {self.dest}: ")
             pw_check = subprocess.run(
@@ -82,9 +94,9 @@ class Target:
                 fail("incorrect sudo password")
 
     def run(self, cmd: str, check: bool = True, sudo: bool = False) -> str:
+        quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
         if sudo and self.user and self.user != "root":
             self.ensure_sudo()
-            quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
             if self.sudo_pw:
                 proc = subprocess.run(
                     self.argv() + [f"sudo -S -p '' sh -c {quoted_cmd}"],
@@ -94,17 +106,34 @@ class Target:
                     check=False,
                 )
             else:
-                proc = subprocess.run(self.argv() + [f"sudo sh -c {quoted_cmd}"], capture_output=True, text=True, check=False)
+                proc = subprocess.run(
+                    self.argv() + [f"sudo sh -c {quoted_cmd}"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
         else:
-            proc = subprocess.run(self.argv() + [cmd], capture_output=True, text=True, check=False)
+            proc = subprocess.run(
+                self.argv() + [f"sh -c {quoted_cmd}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
 
         if check and proc.returncode != 0:
-            fail(f"ssh {self.raw}: {proc.stderr.strip() or proc.stdout.strip() or f'exit code {proc.returncode}'}")
+            fail(
+                f"ssh {self.raw}: {proc.stderr.strip() or proc.stdout.strip() or f'exit code {proc.returncode}'}"
+            )
         return proc.stdout
 
     def pipe(self, data: bytes | Path, remote_file: str):
         payload = data if isinstance(data, bytes) else data.read_bytes()
-        proc = subprocess.run(self.argv() + [f"cat > '{remote_file}'"], input=payload, capture_output=True, check=False)
+        proc = subprocess.run(
+            self.argv() + [f"sh -c \"cat > '{remote_file}'\""],
+            input=payload,
+            capture_output=True,
+            check=False,
+        )
         if proc.returncode != 0:
             fail(f"pipe to {remote_file}: {proc.stderr.decode().strip()}")
 
@@ -116,7 +145,9 @@ class Target:
                 quoted_pw = "'" + self.sudo_pw.replace("'", "'\\''") + "'"
                 cmd_to_run = f"nohup sh -c 'echo {quoted_pw} | sudo -S -p \"\" {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
             else:
-                cmd_to_run = f"nohup sh -c 'sudo {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+                cmd_to_run = (
+                    f"nohup sh -c 'sudo {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+                )
         else:
             quoted = "'" + cmd.replace("'", "'\\''") + "'"
             cmd_to_run = f"nohup sh -c {quoted} </dev/null >/dev/null 2>&1 &"
@@ -128,7 +159,14 @@ class Target:
                 with socket.create_connection((self.host, p), timeout=1.5) as s:
                     if s.recv(1024).startswith(b"SSH-"):
                         test_target = Target(f"root@{self.host}", port=p)
-                        if subprocess.run(test_target.argv() + ["test -f /run/induo-stage"], capture_output=True, check=False).returncode == 0:
+                        if (
+                            subprocess.run(
+                                test_target.argv() + ["test -f /run/induo-stage"],
+                                capture_output=True,
+                                check=False,
+                            ).returncode
+                            == 0
+                        ):
                             return p
             except OSError:
                 pass
@@ -145,7 +183,9 @@ def wait_port(host: str, port: int, timeout: int, what: str) -> bool:
                         return True
             except OSError:
                 pass
-            status.update(f"waiting for {what} on {host}:{port} [dim]({int(deadline - time.monotonic())}s left)[/]")
+            status.update(
+                f"waiting for {what} on {host}:{port} [dim]({int(deadline - time.monotonic())}s left)[/]"
+            )
             time.sleep(3)
     return False
 
@@ -184,14 +224,26 @@ def parse_probe(raw: str) -> dict:
     except json.JSONDecodeError:
         fail("failed to parse probe json output")
 
-    links = {link.get("ifname"): link.get("address", "") for link in raw_json.get("link", [])}
+    links = {
+        link.get("ifname"): link.get("address", "") for link in raw_json.get("link", [])
+    }
     addrs = raw_json.get("addr", [])
     disks = raw_json.get("disks", [])
     rootsrc = raw_json.get("rootsrc", "")
-    root_disk = next((dev for dev, _ in disks if rootsrc.startswith(dev)), (disks[0][0] if disks else "/dev/vda"))
+    root_disk = next(
+        (dev for dev, _ in disks if rootsrc.startswith(dev)),
+        (disks[0][0] if disks else "/dev/vda"),
+    )
 
     def gw(routes, dev):
-        return next((r.get("gateway", "") for r in routes if r.get("dst") == "default" and r.get("dev") == dev), "")
+        return next(
+            (
+                r.get("gateway", "")
+                for r in routes
+                if r.get("dst") == "default" and r.get("dev") == dev
+            ),
+            "",
+        )
 
     def find_ip(family, routes, got_str):
         tokens = got_str.split()
@@ -203,7 +255,11 @@ def parse_probe(raw: str) -> dict:
             if entry.get("ifname") != dev:
                 continue
             for info in entry.get("addr_info", []):
-                if info.get("family") == family and info.get("scope") != "link" and info.get("local"):
+                if (
+                    info.get("family") == family
+                    and info.get("scope") != "link"
+                    and info.get("local")
+                ):
                     return {
                         "dev": dev,
                         "mac": links.get(dev, ""),
@@ -233,16 +289,54 @@ def show_probe(p: dict):
     tbl.add_row("memory", f"{p['memory_kib'] // 1024} MiB")
     for v in (4, 6):
         if s := p.get(f"v{v}"):
-            tbl.add_row(f"IPv{v}", f"{s['address']} via {s['gateway']} on {s['dev']}{' (dhcp)' if s['dynamic'] else ' (static)'}")
+            tbl.add_row(
+                f"IPv{v}",
+                f"{s['address']} via {s['gateway']} on {s['dev']}{' (dhcp)' if s['dynamic'] else ' (static)'}",
+            )
     for d, sz in p["disks"]:
-        tbl.add_row("disk", f"{d} {sz / (1024 ** 3):.1f} GiB{' [bold green]<- root[/]' if d == p['root_disk'] else ''}")
+        tbl.add_row(
+            "disk",
+            f"{d} {sz / (1024**3):.1f} GiB{' [bold green]<- root[/]' if d == p['root_disk'] else ''}",
+        )
     console.print(tbl)
 
 
-def render_host(name: str, p: dict, disk: str) -> tuple[str, str]:
-    pin_addrs = [p[v]["address"] for v in ("v4", "v6") if p.get(v) and (not p[v]["dynamic"] or p[v]["address"].endswith("/128"))]
-    routes = [f'          {{ Gateway = "{p[v]["gateway"]}"; GatewayOnLink = true; }}' for v in ("v4", "v6") if p.get(v) and not p[v]["dynamic"]]
-    dhcp = {("v4",): "ipv6", ("v6",): "ipv4"}.get(tuple(v for v in ("v4", "v6") if p.get(v) and not p[v]["dynamic"]), "yes") if pin_addrs else "yes"
+def resolve_state_version(repo: Path) -> str:
+    if not STATE_VERSION.startswith("@"):
+        return STATE_VERSION
+    proc = subprocess.run(
+        ["nix", "eval", ".#inputs.nixpkgs.lib.trivial.release", "--raw"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0 and proc.stdout.strip():
+        return proc.stdout.strip()
+    return "26.11"
+
+
+def render_host(
+    name: str, p: dict, disk: str, state_version: str = "26.11"
+) -> tuple[str, str]:
+    pin_addrs = [
+        p[v]["address"]
+        for v in ("v4", "v6")
+        if p.get(v) and (not p[v]["dynamic"] or p[v]["address"].endswith("/128"))
+    ]
+    routes = [
+        f'          {{ Gateway = "{p[v]["gateway"]}"; GatewayOnLink = true; }}'
+        for v in ("v4", "v6")
+        if p.get(v) and not p[v]["dynamic"]
+    ]
+    dhcp = (
+        {("v4",): "ipv6", ("v6",): "ipv4"}.get(
+            tuple(v for v in ("v4", "v6") if p.get(v) and not p[v]["dynamic"]),
+            "yes",
+        )
+        if pin_addrs
+        else "yes"
+    )
 
     net_block = []
     if pin_addrs or routes or dhcp != "yes":
@@ -250,7 +344,9 @@ def render_host(name: str, p: dict, disk: str) -> tuple[str, str]:
         if dhcp != "yes":
             net_block.append(f'          networkConfig.DHCP = "{dhcp}";')
         if pin_addrs:
-            net_block.append(f'          address = [ {" ".join(f"{chr(34)}{a}{chr(34)}" for a in pin_addrs)} ];')
+            net_block.append(
+                f"          address = [ {' '.join(f'{chr(34)}{a}{chr(34)}' for a in pin_addrs)} ];"
+            )
         if routes:
             net_block += ["          routes = [", *routes, "          ];"]
         net_block.append("        };")
@@ -259,8 +355,8 @@ def render_host(name: str, p: dict, disk: str) -> tuple[str, str]:
     default_nix = f"""{{ self, ... }}:
 {{
   hosts.{name} = {{
-    system = "{p['arch']}-linux";
-    stateVersion = "{STATE_VERSION}";
+    system = "{p["arch"]}-linux";
+    stateVersion = "{state_version}";
     module =
       {{ ... }}:
       {{
@@ -354,7 +450,13 @@ def resolve_keys(repo: Path, name: str, explicit_keys: list[str] | None) -> list
         return [Path(k).read_text().strip() for k in explicit_keys]
     expr = f""".#nixosConfigurations.{name}.config"""
     apply = r"c: (c.users.users.${c.my.name}.openssh.authorizedKeys.keys or []) ++ (c.users.users.root.openssh.authorizedKeys.keys or [])"
-    proc = subprocess.run(["nix", "eval", expr, "--apply", apply, "--json"], cwd=repo, capture_output=True, text=True, check=False)
+    proc = subprocess.run(
+        ["nix", "eval", expr, "--apply", apply, "--json"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     if proc.returncode == 0:
         try:
             return json.loads(proc.stdout)
@@ -369,24 +471,38 @@ def resolve_keys(repo: Path, name: str, explicit_keys: list[str] | None) -> list
 def build_image(repo: Path, name: str) -> tuple[Path, int, bool]:
     attr_disko = f".#nixosConfigurations.{name}.config.system.build.diskoImages"
     console.print(f"[dim]building {attr_disko}[/]")
-    proc = subprocess.run(["nix", "build", attr_disko, "--no-link", "--print-out-paths"], cwd=repo, capture_output=True, text=True, check=False)
+    proc = subprocess.run(
+        ["nix", "build", attr_disko, "--no-link", "--print-out-paths"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     if proc.returncode != 0:
         fail(f"nix build {attr_disko} failed: {proc.stderr}")
 
     out = Path(proc.stdout.strip())
-    candidates = list(out.glob("*.zst")) + list(out.glob("*.raw")) + list(out.glob("*.img"))
+    candidates = (
+        list(out.glob("*.zst")) + list(out.glob("*.raw")) + list(out.glob("*.img"))
+    )
     if not candidates:
         fail(f"no disk image found in {out}")
 
     img = candidates[0]
     is_compressed = img.name.endswith(".zst")
-    size = int((out / "size").read_text().strip()) if (out / "size").exists() else img.stat().st_size
+    size = (
+        int((out / "size").read_text().strip())
+        if (out / "size").exists()
+        else img.stat().st_size
+    )
     return img, size, is_compressed
 
 
 def cpio_entry(name: str, body: bytes, mode: int) -> bytes:
     nb = name.encode("ascii") + b"\0"
-    hdr = f"070701{0:08x}{mode:08x}{0:08x}{0:08x}{1:08x}{int(time.time()):08x}{len(body):08x}{0:08x}{0:08x}{0:08x}{0:08x}{len(nb):08x}{0:08x}".encode("ascii")
+    hdr = f"070701{0:08x}{mode:08x}{0:08x}{0:08x}{1:08x}{int(time.time()):08x}{len(body):08x}{0:08x}{0:08x}{0:08x}{0:08x}{len(nb):08x}{0:08x}".encode(
+        "ascii"
+    )
 
     def pad(b: bytes) -> bytes:
         return b + b"\0" * ((4 - len(b) % 4) % 4)
@@ -401,7 +517,7 @@ def make_stage_initrd(keys: list[str], p: dict) -> bytes:
             ip_cmd = "ip -6" if v == 6 else "ip"
             net_cmds += [
                 f'for d in /sys/class/net/*; do [ "$(cat "$d/address" 2>/dev/null)" = "{s["mac"]}" ] && dev=$(basename "$d"); done',
-                'dev=${dev:-eth0}',
+                "dev=${dev:-eth0}",
                 'ip link set "$dev" up 2>/dev/null || true',
                 'udhcpc -i "$dev" -b -s /etc/udhcpc.script 2>/dev/null || true',
                 f'{ip_cmd} addr add {s["address"]} dev "$dev" 2>/dev/null || true',
@@ -410,10 +526,18 @@ def make_stage_initrd(keys: list[str], p: dict) -> bytes:
             ]
     buf = io.BytesIO()
     buf.write(cpio_entry("induo", b"", 0o040755))
-    buf.write(cpio_entry("induo/net.sh", ("\n".join(net_cmds) + "\n").encode(), 0o100755))
+    buf.write(
+        cpio_entry("induo/net.sh", ("\n".join(net_cmds) + "\n").encode(), 0o100755)
+    )
     buf.write(cpio_entry("root", b"", 0o040700))
     buf.write(cpio_entry("root/.ssh", b"", 0o040700))
-    buf.write(cpio_entry("root/.ssh/authorized_keys", ("\n".join(keys) + "\n").encode(), 0o100600))
+    buf.write(
+        cpio_entry(
+            "root/.ssh/authorized_keys",
+            ("\n".join(keys) + "\n").encode(),
+            0o100600,
+        )
+    )
     buf.write(cpio_entry("TRAILER!!!", b"", 0))
     buf.write(Path(f"{STAGE}/initrd").read_bytes())
     return buf.getvalue()
@@ -421,10 +545,19 @@ def make_stage_initrd(keys: list[str], p: dict) -> bytes:
 
 def deploy_and_boot_stage(target: Target, p: dict, initrd: bytes, timeout: int):
     k_path, g_path = Path(f"{STAGE}/kernel"), Path(f"{STAGE}/grub.efi")
-    total_sz = k_path.stat().st_size + len(initrd) + (g_path.stat().st_size if g_path.exists() else 0)
-    console.print(f"stage [bold]{total_sz / (1024 * 1024):.1f} MiB[/] -> {target.raw}:{REMOTE_DIR}")
+    total_sz = (
+        k_path.stat().st_size
+        + len(initrd)
+        + (g_path.stat().st_size if g_path.exists() else 0)
+    )
+    console.print(
+        f"stage [bold]{total_sz / (1024 * 1024):.1f} MiB[/] -> {target.raw}:{REMOTE_DIR}"
+    )
 
-    target.run(f"rm -rf {REMOTE_DIR} && mkdir -p {REMOTE_DIR} && chown -R $USER:$USER {REMOTE_DIR}", sudo=True)
+    target.run(
+        f"rm -rf {REMOTE_DIR} && mkdir -p {REMOTE_DIR} && chown -R $USER:$USER {REMOTE_DIR}",
+        sudo=True,
+    )
     target.pipe(k_path, f"{REMOTE_DIR}/kernel")
     target.pipe(initrd, f"{REMOTE_DIR}/initrd")
     if g_path.exists():
@@ -462,11 +595,17 @@ echo "BOOT_GRUB"
 
 def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = False):
     img_size = image.stat().st_size
-    target.run(f"modprobe sd_mod 2>/dev/null || true; mdev -s 2>/dev/null || true; [ -b {disk} ] || (rm -f {disk}; mknod {disk} b 8 0 2>/dev/null || true); touch /run/active")
+    target.run(
+        f"modprobe sd_mod 2>/dev/null || true; mdev -s 2>/dev/null || true; [ -b {disk} ] || (rm -f {disk}; mknod {disk} b 8 0 2>/dev/null || true); touch /run/active"
+    )
 
     ssh_cmd = target.argv() + [
-        "-c", "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr",
-        "-o", "Compression=no", "-o", "IPQoS=throughput",
+        "-c",
+        "aes128-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr",
+        "-o",
+        "Compression=no",
+        "-o",
+        "IPQoS=throughput",
         f"zstd -dc | dd of={disk} bs=4M conv=fsync status=none",
     ]
 
@@ -475,7 +614,12 @@ def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = Fal
     t = None
 
     if not is_compressed:
-        zstd_proc = subprocess.Popen(["zstd", "-T0", "-6"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        zstd_proc = subprocess.Popen(
+            ["zstd", "-T0", "-6"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
         def pump():
             try:
@@ -513,7 +657,11 @@ def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = Fal
                 feeder.write(chunk)
                 progress.advance(task, len(chunk))
             except (BrokenPipeError, OSError) as e:
-                err_msg = ssh_proc.stderr.read().decode().strip() if ssh_proc.stderr else str(e)
+                err_msg = (
+                    ssh_proc.stderr.read().decode().strip()
+                    if ssh_proc.stderr
+                    else str(e)
+                )
                 fail(f"stream failed: {err_msg}")
 
         try:
@@ -526,9 +674,13 @@ def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = Fal
             if t:
                 t.join()
         if (ret := ssh_proc.wait()) != 0:
-            fail(f"remote dd failed (code {ret}): {ssh_proc.stderr.read().decode().strip()}")
+            fail(
+                f"remote dd failed (code {ret}): {ssh_proc.stderr.read().decode().strip()}"
+            )
 
-    console.print(f"[bold green]disk write complete:[/] {disk} in {time.monotonic() - start_time:.1f}s")
+    console.print(
+        f"[bold green]disk write complete:[/] {disk} in {time.monotonic() - start_time:.1f}s"
+    )
 
 
 def cmd_gen(args):
@@ -545,21 +697,35 @@ def cmd_gen(args):
     if not p.get("v4") and not p.get("v6"):
         fail("could not determine any usable address")
 
-    disk = args.disk or p.get("root_disk") or (p["disks"][0][0] if p["disks"] else "/dev/vda")
+    disk = (
+        args.disk
+        or p.get("root_disk")
+        or (p["disks"][0][0] if p["disks"] else "/dev/vda")
+    )
     host_dir = repo / "modules/hosts" / name
     host_file, disko_file = host_dir / "default.nix", host_dir / "disko.nix"
 
     if host_file.exists() and not args.force:
-        console.print(f"[yellow]host {name} already exists at {host_dir.relative_to(repo)}[/] (use --force to overwrite)")
+        console.print(
+            f"[yellow]host {name} already exists at {host_dir.relative_to(repo)}[/] (use --force to overwrite)"
+        )
         return
 
     host_dir.mkdir(parents=True, exist_ok=True)
-    def_content, disko_content = render_host(name, p, disk)
+    def_content, disko_content = render_host(
+        name, p, disk, state_version=resolve_state_version(repo)
+    )
     host_file.write_text(def_content)
     disko_file.write_text(disko_content)
-    subprocess.run(["git", "add", "-N", str(host_file), str(disko_file)], cwd=repo, check=False)
+    subprocess.run(
+        ["git", "add", "-N", str(host_file), str(disko_file)],
+        cwd=repo,
+        check=False,
+    )
 
-    console.print(f"[bold green]generated configuration:[/] {host_file.relative_to(repo)} & {disko_file.relative_to(repo)}")
+    console.print(
+        f"[bold green]generated configuration:[/] {host_file.relative_to(repo)} & {disko_file.relative_to(repo)}"
+    )
     console.print(f"next: [bold]induo write {target.raw} --name {name}[/]")
 
 
@@ -574,7 +740,9 @@ def cmd_write(args):
         console.print(f"[green]target is in RAM stage[/] (port {stage_port})")
         disk = args.disk
         if not disk:
-            fail("target is in RAM stage, specify target disk via --disk (e.g. --disk /dev/vda)")
+            fail(
+                "target is in RAM stage, specify target disk via --disk (e.g. --disk /dev/vda)"
+            )
         image, _, is_compressed = build_image(repo, name)
         stage_target = Target(f"root@{target.host}", port=stage_port)
         write_disk(stage_target, image, disk, is_compressed=is_compressed)
@@ -589,11 +757,17 @@ def cmd_write(args):
     if not p.get("v4") and not p.get("v6"):
         fail("could not determine any usable address")
 
-    disk = args.disk or p.get("root_disk") or (p["disks"][0][0] if p["disks"] else "/dev/vda")
+    disk = (
+        args.disk
+        or p.get("root_disk")
+        or (p["disks"][0][0] if p["disks"] else "/dev/vda")
+    )
     keys = resolve_keys(repo, name, args.key)
     image, size, is_compressed = build_image(repo, name)
 
-    console.print(f"deploying [bold]{name}[/] ({size / (1024 ** 3):.1f} GiB) -> {target.raw} on [bold]{disk}[/]")
+    console.print(
+        f"deploying [bold]{name}[/] ({size / (1024**3):.1f} GiB) -> {target.raw} on [bold]{disk}[/]"
+    )
     deploy_and_boot_stage(target, p, make_stage_initrd(keys, p), args.timeout)
 
     stage_port = 0
@@ -618,21 +792,39 @@ def cmd_write(args):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="induo", description="Deploy NixOS flake configuration to remote host in RAM")
+    ap = argparse.ArgumentParser(
+        prog="induo",
+        description="Deploy NixOS flake configuration to remote host in RAM",
+    )
     sub = ap.add_subparsers(dest="command", required=True)
 
-    p_gen = sub.add_parser("gen", help="Probe remote host and generate NixOS + Disko configuration")
+    p_gen = sub.add_parser(
+        "gen",
+        help="Probe remote host and generate NixOS + Disko configuration",
+    )
     p_gen.add_argument("target", help="SSH target (e.g. root@host or user@host)")
     p_gen.add_argument("--name", help="Flake host attribute name")
     p_gen.add_argument("--disk", help="Target disk")
-    p_gen.add_argument("--force", "-f", action="store_true", help="Overwrite existing host configuration files")
+    p_gen.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Overwrite existing host configuration files",
+    )
 
-    p_write = sub.add_parser("write", help="Build and write NixOS image to remote host in RAM")
+    p_write = sub.add_parser(
+        "write", help="Build and write NixOS image to remote host in RAM"
+    )
     p_write.add_argument("target", help="SSH target (e.g. root@host or user@host)")
     p_write.add_argument("--name", help="Flake host attribute name")
     p_write.add_argument("--disk", help="Target disk to overwrite")
     p_write.add_argument("--key", action="append", help="Public key file for Stage SSH")
-    p_write.add_argument("--timeout", type=int, default=180, help="Stage watchdog timeout in seconds")
+    p_write.add_argument(
+        "--timeout",
+        type=int,
+        default=180,
+        help="Stage watchdog timeout in seconds",
+    )
 
     args = ap.parse_args()
     (cmd_gen if args.command == "gen" else cmd_write)(args)

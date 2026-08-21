@@ -1,4 +1,5 @@
 {
+  lib,
   stdenv,
   runCommand,
   writeText,
@@ -233,11 +234,13 @@ let
     ln -s ${grubEfi}/grub.efi $out/grub.efi
   '';
 in
-writers.writePython3Bin "induo" {
-  flakeIgnore = [
-    "E501"
-    "E265"
-    "E226"
-  ];
-  libraries = with python3Packages; [ rich ];
-} (builtins.replaceStrings [ "@stage@" ] [ "${stage}" ] (builtins.readFile ./induo.py))
+writers.writePython3Bin "induo"
+  {
+    doCheck = false;
+    libraries = with python3Packages; [ rich ];
+  }
+  (
+    builtins.replaceStrings [ "@stage@" "@stateVersion@" ] [ "${stage}" "${lib.trivial.release}" ] (
+      builtins.readFile ./induo.py
+    )
+  )
