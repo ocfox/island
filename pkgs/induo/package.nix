@@ -15,22 +15,67 @@ let
   inherit (linuxPackages) kernel;
   ver = kernel.modDirVersion;
 
-  modules = runCommand "induo-modules" { nativeBuildInputs = [ pkgsStatic.kmod ]; } ''
-    src=${kernel.modules}/lib/modules/${ver}
-    dst=$out/lib/modules/${ver}
-    mkdir -p "$dst/kernel"
+  targetModules = [
+    "virtio_pci"
+    "virtio_net"
+    "virtio_blk"
+    "virtio_scsi"
+    "virtio_rng"
+    "sd_mod"
+    "ena"
+    "nvme"
+    "nvme_core"
+    "gve"
+    "mana"
+    "hv_netvsc"
+    "hv_storvsc"
+    "vmxnet3"
+    "vmw_pvscsi"
+    "xen_netfront"
+    "xen_blkfront"
+    "xen_scsifront"
+    "ixgbevf"
+    "e1000e"
+    "e1000"
+    "igb"
+    "r8169"
+    "tg3"
+    "bnxt_en"
+    "mlx4_en"
+    "mlx5_core"
+    "ahci"
+    "ata_piix"
+    "ata_generic"
+  ];
 
-    for f in modules.builtin modules.builtin.modinfo modules.order; do
-      if [ -e "$src/$f" ]; then cp "$src/$f" "$dst/$f"; fi
-    done
+  modules =
+    runCommand "induo-modules"
+      {
+        nativeBuildInputs = [ pkgsStatic.kmod ];
+      }
+      ''
+        src=${kernel.modules}
+        dst=$out/lib/modules/${ver}
+        mkdir -p "$dst"
 
-    cp -r "$src/kernel" "$dst/"
-    chmod -R u+w "$dst"
-    rm -rf "$dst"/kernel/drivers/{gpu,media,sound,staging,iio,hid,infiniband,bluetooth,w1,hwmon}
-    rm -rf "$dst"/kernel/drivers/net/{wireless,wwan,usb,can,ieee802154}
-    rm -rf "$dst"/kernel/sound
-    depmod -b "$out" ${ver}
-  '';
+        for f in modules.builtin modules.builtin.modinfo modules.order; do
+          if [ -e "$src/lib/modules/${ver}/$f" ]; then
+            cp "$src/lib/modules/${ver}/$f" "$dst/$f"
+          fi
+        done
+
+        for m in ${toString targetModules}; do
+          for f in $(modprobe -d "$src" -S "${ver}" --show-depends "$m" 2>/dev/null | awk '{print $2}'); do
+            if [ -n "$f" ] && [ -f "$f" ]; then
+              rel="''${f#$src/lib/modules/${ver}/}"
+              mkdir -p "$dst/$(dirname "$rel")"
+              cp -n "$f" "$dst/$rel" 2>/dev/null || true
+            fi
+          done
+        done
+
+        depmod -b "$out" ${ver}
+      '';
 
   udhcpcScript = writeText "udhcpc.script" ''
     #!/bin/sh
@@ -215,11 +260,12 @@ let
       }
       ''
         mkdir -p $out
-        grub-mkstandalone \
+        grub-mkimage \
           -O ${grubFormat} \
           -o $out/grub.efi \
-          --modules="normal minicmd serial ls echo test cat reboot halt linux search all_video part_msdos part_gpt fat ext2 xfs btrfs gzio zstd configfile" \
-          "boot/grub/grub.cfg=${grubEarlyCfg}"
+          -c ${grubEarlyCfg} \
+          -p "/EFI/induo" \
+          normal minicmd serial ls echo test cat reboot halt linux search search_fs_file search_fs_uuid search_label all_video part_msdos part_gpt fat ext2 xfs btrfs gzio zstd configfile relocator font
       '';
 
   stage = runCommand "induo-stage" { } ''
