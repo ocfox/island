@@ -9,7 +9,7 @@
   writers,
 }:
 let
-  kernel = linuxPackages.kernel;
+  inherit (linuxPackages) kernel;
   ver = kernel.modDirVersion;
 
   modules = runCommand "induo-modules" { nativeBuildInputs = [ pkgsStatic.kmod ]; } ''
@@ -53,7 +53,7 @@ let
     exec >/dev/tty0 2>&1
     echo "=== INDUO RAM STAGE INIT ==="
 
-    for m in virtio_pci virtio_net virtio_blk virtio_scsi sd_mod virtio_rng ena nvme nvme_core ixgbevf e1000e e1000 igb ahci ata_piix; do
+    for m in virtio_pci virtio_net virtio_blk virtio_scsi sd_mod virtio_rng ena nvme nvme_core gve mana hv_netvsc hv_storvsc vmxnet3 vmw_pvscsi xen_netfront xen_blkfront xen_scsifront ixgbevf e1000e e1000 igb mlx4_en mlx5_core ahci ata_piix ata_generic; do
       modprobe $m 2>/dev/null || true
     done
     for a in $(cat /sys/bus/pci/devices/*/modalias /sys/bus/virtio/devices/*/modalias 2>/dev/null); do
@@ -91,7 +91,7 @@ let
     dropbear -E -s -g -W 8388608 -r /etc/dropbear/dropbear_ed25519_host_key -r /etc/dropbear/dropbear_rsa_host_key -p 22 -p 2222 &
     echo "=== INDUO RAM STAGE READY FOR SSH ==="
 
-    TIMEOUT=1800
+    TIMEOUT=180
     for arg in $(cat /proc/cmdline); do
       case "$arg" in
         induo.timeout=*) TIMEOUT="''${arg#induo.timeout=}" ;;
@@ -116,7 +116,7 @@ let
 
   env = runCommand "induo-env" { } ''
     mkdir -p $out/bin
-    for p in ${pkgsStatic.busybox} ${pkgsStatic.socat} ${pkgsStatic.zstd} ${pkgsStatic.kmod} ${pkgsStatic.dropbear}; do
+    for p in ${pkgsStatic.busybox} ${pkgsStatic.zstd} ${pkgsStatic.kmod} ${pkgsStatic.dropbear}; do
       for d in bin sbin; do
         [ -d "$p/$d" ] || continue
         for f in "$p/$d"/*; do

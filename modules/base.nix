@@ -16,6 +16,10 @@
         pcscd.enable = true;
         openssh = {
           enable = true;
+          settings = {
+            PasswordAuthentication = false;
+            KbdInteractiveAuthentication = false;
+          };
           hostKeys = [
             {
               path = "/var/lib/ssh/ssh_host_ed25519_key";

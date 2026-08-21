@@ -1,6 +1,18 @@
 { inputs, ... }:
 {
-  flake.modules.nixos.disko.imports = [
-    inputs.disko.nixosModules.default
-  ];
+  flake.modules.nixos.disko =
+    { pkgs, ... }:
+    {
+      imports = [
+        inputs.disko.nixosModules.default
+      ];
+
+      nixpkgs.overlays = [
+        (final: prev: {
+          vmTools = prev.vmTools.override {
+            kernelImage = "bzImage";
+          };
+        })
+      ];
+    };
 }

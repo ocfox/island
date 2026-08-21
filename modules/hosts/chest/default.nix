@@ -5,12 +5,22 @@
     stateVersion = "25.11";
     hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIChMEzSk0CPcDNCBYT1tlmGWGIW9qeTGKX6LL6+NJjep root@chest";
     module =
-      { ... }:
+      { config, ... }:
       {
         imports = with self.modules.nixos; [
           vps
           xray
         ];
+
+        users.users.parfait = {
+          isNormalUser = true;
+          extraGroups = [ "wheel" ];
+          openssh.authorizedKeys.keys = [
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH19dnVW2sgzVKFIbeMRp3HfS564o5wzlp7YblJcEhbU ed25519 256-20260821"
+          ];
+        };
+
+        security.sudo.wheelNeedsPassword = false;
 
         services.xray = {
           enable = true;

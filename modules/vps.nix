@@ -1,86 +1,124 @@
 {
   flake.modules.nixos.vps =
     {
-      config,
       lib,
-      pkgs,
       modulesPath,
       ...
     }:
     {
       imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
-      boot.initrd.availableKernelModules = [
-        "ata_piix"
-        "uhci_hcd"
-        "virtio_pci"
-        "virtio_scsi"
-        "ehci_pci"
-        "xhci_pci"
-        "sr_mod"
-        "virtio_blk"
-        "ahci"
-        "nvme"
-        "xen_blkfront"
-        "vmw_pvscsi"
-      ];
-      boot.initrd.kernelModules = [ ];
-      boot.kernelModules = [ ];
-      boot.extraModulePackages = [ ];
-      boot.kernelParams = [
-        "console=ttyS0,115200n8"
-        "console=tty0"
-      ];
+      boot = {
+        growPartition = lib.mkDefault true;
+        initrd = {
+          availableKernelModules = [
+            "virtio_pci"
+            "virtio_scsi"
+            "virtio_blk"
+            "virtio_net"
+            "virtio_rng"
+            "nvme"
+            "nvme_core"
+            "ena"
+            "xen_blkfront"
+            "xen_scsifront"
+            "xen_netfront"
+            "gve"
+            "hv_storvsc"
+            "hv_netvsc"
+            "mana"
+            "vmw_pvscsi"
+            "vmxnet3"
+            "ahci"
+            "ata_piix"
+            "ata_generic"
+            "sd_mod"
+            "sr_mod"
+            "ehci_pci"
+            "xhci_pci"
+            "e1000e"
+            "e1000"
+            "igb"
+            "ixgbevf"
+            "mlx4_en"
+            "mlx5_core"
+          ];
+          kernelModules = [ ];
+        };
+        kernelModules = [ ];
+        extraModulePackages = [ ];
+        kernelParams = [
+          "console=ttyS0,115200n8"
+          "console=ttyAMA0,115200n8"
+          "console=tty0"
+          "earlycon"
+        ];
+        supportedFilesystems = lib.mkDefault [
+          "btrfs"
+          "ext4"
+          "vfat"
+        ];
+      };
 
-      # base is shaped for workstations: no VM loads firmware blobs, and
-      # "all" builds every locale glibc has.
       hardware.enableRedistributableFirmware = lib.mkForce false;
       i18n.extraLocales = lib.mkForce [ ];
+
+      documentation = {
+        enable = lib.mkForce false;
+        man.enable = lib.mkForce false;
+        nixos.enable = lib.mkForce false;
+        info.enable = lib.mkForce false;
+        doc.enable = lib.mkForce false;
+      };
+
+      fonts.fontconfig.enable = lib.mkForce false;
+
+      programs = {
+        command-not-found.enable = lib.mkDefault false;
+        nano.enable = lib.mkDefault false;
+        bash.completion.enable = lib.mkDefault false;
+      };
+
+      services = {
+        pcscd.enable = lib.mkForce false;
+        udisks2.enable = lib.mkDefault false;
+      };
+      security.polkit.enable = lib.mkDefault false;
+
+      nix = {
+        registry = lib.mkForce { };
+        settings.nix-path = lib.mkForce [ ];
+        channel.enable = false;
+      };
+      system.tools.nixos-rebuild.enable = lib.mkDefault false;
+
+      zramSwap = {
+        enable = lib.mkDefault true;
+        algorithm = lib.mkDefault "zstd";
+        memoryPercent = lib.mkDefault 50;
+      };
 
       networking = {
         dhcpcd.enable = false;
         firewall.enable = false;
         useNetworkd = true;
         usePredictableInterfaceNames = false;
-        # Some providers only route DNS to their own resolvers.
         nameservers = lib.mkDefault [
           "1.1.1.1"
           "8.8.8.8"
           "2606:4700:4700::1111"
           "2001:4860:4860::8888"
         ];
-        nftables = {
-          enable = true;
-        };
+        nftables.enable = true;
       };
 
       systemd.network = {
         enable = true;
         networks."10-eth0" = {
-          # Hosts with a static lease override DHCP and add address/routes here;
-          # induo generates exactly that block.
           matchConfig.Name = "eth0";
           networkConfig.DHCP = lib.mkDefault "yes";
           linkConfig.RequiredForOnline = lib.mkDefault "routable";
         };
-      };
-
-      system.build.diskImage = import (modulesPath + "/../lib/make-disk-image.nix") {
-        inherit pkgs lib config;
-        partitionTableType = "hybrid";
-        format = "raw";
-        diskSize = "auto";
-        additionalSpace = "384M";
-        installBootLoader = true;
-        copyChannel = false;
-        postVM = ''
-          if [ -z "$(${pkgs.coreutils}/bin/dd if="$out/nixos.img" bs=440 count=1 status=none | tr -d '\0')" ]; then
-            echo "vps: MBR has no boot code, limine bios-install did not run" >&2
-            exit 1
-          fi
-          ${pkgs.coreutils}/bin/stat -c %s "$out/nixos.img" > "$out/size"
-          ${pkgs.zstd}/bin/zstd -T0 -9 --rm "$out/nixos.img"
-        '';
       };
     };
 }
