@@ -2,6 +2,7 @@
 """induo: deploy a NixOS flake configuration to any remote Linux machine in RAM."""
 
 import argparse
+import getpass
 import io
 import json
 import os
@@ -27,8 +28,12 @@ err = Console(stderr=True, highlight=False)
 
 STAGE = os.environ.get("INDUO_STAGE", "@stage@")
 REMOTE_DIR = "/var/tmp/induo"
-STATE_VERSION = "26.05"
-SSH_OPTS = ["-o", "ConnectTimeout=10", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null"]
+SSH_OPTS = [
+    "-o", "ConnectTimeout=10",
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "-o", "BatchMode=yes",
+]
 
 
 def fail(msg: str):
@@ -52,13 +57,47 @@ class Target:
         self.user, _, self.host = target.rpartition("@") if "@" in target else ("", "", target)
         self.host = self.host.strip("[]")
         self.dest = f"{self.user}@{self.host}" if self.user else self.host
+        self.sudo_pw: str | None = None
+        self._checked_sudo = False
 
     def argv(self, tool: str = "ssh") -> list[str]:
         p = ["-P" if tool == "scp" else "-p", str(self.port)] if self.port != 22 else []
         return [tool, *SSH_OPTS, *p, self.dest]
 
-    def run(self, cmd: str, check: bool = True) -> str:
-        proc = subprocess.run(self.argv() + [cmd], capture_output=True, text=True, check=False)
+    def ensure_sudo(self):
+        if self._checked_sudo or not self.user or self.user == "root":
+            return
+        self._checked_sudo = True
+        proc = subprocess.run(self.argv() + ["sudo -n true"], capture_output=True, text=True, check=False)
+        if proc.returncode != 0:
+            self.sudo_pw = getpass.getpass(f"induo: sudo password for {self.dest}: ")
+            pw_check = subprocess.run(
+                self.argv() + ["sudo -S -p '' true"],
+                input=self.sudo_pw + "\n",
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if pw_check.returncode != 0:
+                fail("incorrect sudo password")
+
+    def run(self, cmd: str, check: bool = True, sudo: bool = False) -> str:
+        if sudo and self.user and self.user != "root":
+            self.ensure_sudo()
+            quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
+            if self.sudo_pw:
+                proc = subprocess.run(
+                    self.argv() + [f"sudo -S -p '' sh -c {quoted_cmd}"],
+                    input=self.sudo_pw + "\n",
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            else:
+                proc = subprocess.run(self.argv() + [f"sudo sh -c {quoted_cmd}"], capture_output=True, text=True, check=False)
+        else:
+            proc = subprocess.run(self.argv() + [cmd], capture_output=True, text=True, check=False)
+
         if check and proc.returncode != 0:
             fail(f"ssh {self.raw}: {proc.stderr.strip() or proc.stdout.strip() or f'exit code {proc.returncode}'}")
         return proc.stdout
@@ -69,9 +108,19 @@ class Target:
         if proc.returncode != 0:
             fail(f"pipe to {remote_file}: {proc.stderr.decode().strip()}")
 
-    def detach(self, cmd: str):
-        quoted = "'" + cmd.replace("'", "'\\''") + "'"
-        subprocess.run(self.argv() + [f"nohup sh -c {quoted} </dev/null >/dev/null 2>&1 &"], capture_output=True, check=False)
+    def detach(self, cmd: str, sudo: bool = False):
+        if sudo and self.user and self.user != "root":
+            self.ensure_sudo()
+            quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
+            if self.sudo_pw:
+                quoted_pw = "'" + self.sudo_pw.replace("'", "'\\''") + "'"
+                cmd_to_run = f"nohup sh -c 'echo {quoted_pw} | sudo -S -p \"\" {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+            else:
+                cmd_to_run = f"nohup sh -c 'sudo {quoted_cmd}' </dev/null >/dev/null 2>&1 &"
+        else:
+            quoted = "'" + cmd.replace("'", "'\\''") + "'"
+            cmd_to_run = f"nohup sh -c {quoted} </dev/null >/dev/null 2>&1 &"
+        subprocess.run(self.argv() + [cmd_to_run], capture_output=True, check=False)
 
     def is_stage(self) -> int:
         for p in (22, 2222):
@@ -375,16 +424,16 @@ def deploy_and_boot_stage(target: Target, p: dict, initrd: bytes, timeout: int):
     total_sz = k_path.stat().st_size + len(initrd) + (g_path.stat().st_size if g_path.exists() else 0)
     console.print(f"stage [bold]{total_sz / (1024 * 1024):.1f} MiB[/] -> {target.raw}:{REMOTE_DIR}")
 
-    target.run(f"sudo rm -rf {REMOTE_DIR} && sudo mkdir -p {REMOTE_DIR} && sudo chown -R $USER:$USER {REMOTE_DIR}")
+    target.run(f"rm -rf {REMOTE_DIR} && mkdir -p {REMOTE_DIR} && chown -R $USER:$USER {REMOTE_DIR}", sudo=True)
     target.pipe(k_path, f"{REMOTE_DIR}/kernel")
     target.pipe(initrd, f"{REMOTE_DIR}/initrd")
     if g_path.exists():
         target.pipe(g_path, f"{REMOTE_DIR}/grub.efi")
 
     boot_sh = f"""set -e
-sudo mkdir -p /boot/induo /induo
-sudo cp -f {REMOTE_DIR}/kernel /boot/induo/kernel && sudo cp -f {REMOTE_DIR}/initrd /boot/induo/initrd
-sudo cp -f {REMOTE_DIR}/kernel /induo/kernel 2>/dev/null || true && sudo cp -f {REMOTE_DIR}/initrd /induo/initrd 2>/dev/null || true
+mkdir -p /boot/induo /induo
+cp -f {REMOTE_DIR}/kernel /boot/induo/kernel && cp -f {REMOTE_DIR}/initrd /boot/induo/initrd
+cp -f {REMOTE_DIR}/kernel /induo/kernel 2>/dev/null || true && cp -f {REMOTE_DIR}/initrd /induo/initrd 2>/dev/null || true
 if [ -d /sys/firmware/efi ]; then
   for d in $(findmnt -t fat,vfat -n -o TARGET 2>/dev/null | grep -Ex '/efi|/boot/efi|/boot') /boot/efi /boot/EFI /efi /boot; do
     [ -d "$d" ] || continue
@@ -393,22 +442,22 @@ if [ -d /sys/firmware/efi ]; then
     disk=$(lsblk -rn --inverse "$part" 2>/dev/null | awk '$6=="disk"{{print $1}}' | head -1)
     [ -z "$disk" ] && disk=$(echo "$part" | sed -E 's/p?[0-9]+$//' | sed 's|/dev/||')
     pnum=$(echo "$part" | grep -oE '[0-9]+$')
-    sudo mkdir -p "$d/EFI/induo" && sudo cp -f {REMOTE_DIR}/grub.efi "$d/EFI/induo/grub.efi"
-    for b in $(sudo efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*'); do sudo efibootmgr -B -b "$b" >/dev/null 2>&1 || true; done
-    if sudo efibootmgr -c -d "/dev/$disk" -p "$pnum" -L "induo" -l "\\EFI\\induo\\grub.efi" >/dev/null 2>&1; then
-      b=$(sudo efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*' | head -1)
-      [ -n "$b" ] && sudo efibootmgr -n "$b" >/dev/null 2>&1 && echo "BOOT_EFI" && exit 0
+    mkdir -p "$d/EFI/induo" && cp -f {REMOTE_DIR}/grub.efi "$d/EFI/induo/grub.efi"
+    for b in $(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*'); do efibootmgr -B -b "$b" >/dev/null 2>&1 || true; done
+    if efibootmgr -c -d "/dev/$disk" -p "$pnum" -L "induo" -l "\\EFI\\induo\\grub.efi" >/dev/null 2>&1; then
+      b=$(efibootmgr 2>/dev/null | awk '/induo/{{print $1}}' | tr -d 'Boot*' | head -1)
+      [ -n "$b" ] && efibootmgr -n "$b" >/dev/null 2>&1 && echo "BOOT_EFI" && exit 0
     fi
   done
 fi
 cmdline="console=tty0 console=ttyS0,115200n8 console=ttyAMA0,115200n8 earlycon panic=10 net.ifnames=0 induo.timeout={timeout}"
-printf 'set timeout=3\\nmenuentry "induo-stage" {{\\n  search --no-floppy --file --set=root /boot/induo/kernel\\n  linux ($root)/boot/induo/kernel '"$cmdline"'\\n  initrd ($root)/boot/induo/initrd\\n}}\\n' | sudo tee /boot/grub2/custom.cfg /boot/grub/custom.cfg /etc/grub.d/40_custom >/dev/null 2>&1 || true
-sudo grub2-reboot "induo-stage" 2>/dev/null || sudo grub-reboot "induo-stage" 2>/dev/null || true
+printf 'set timeout=3\\nmenuentry "induo-stage" {{\\n  search --no-floppy --file --set=root /boot/induo/kernel\\n  linux ($root)/boot/induo/kernel '"$cmdline"'\\n  initrd ($root)/boot/induo/initrd\\n}}\\n' | tee /boot/grub2/custom.cfg /boot/grub/custom.cfg /etc/grub.d/40_custom >/dev/null 2>&1 || true
+grub2-reboot "induo-stage" 2>/dev/null || grub-reboot "induo-stage" 2>/dev/null || true
 echo "BOOT_GRUB"
 """
-    mode = target.run(boot_sh).strip().splitlines()[-1]
+    mode = target.run(boot_sh, sudo=True).strip().splitlines()[-1]
     console.print(f"[dim]rebooting via {mode.lower()}...[/]")
-    target.detach("sudo reboot || reboot")
+    target.detach("reboot -f || reboot", sudo=True)
 
 
 def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = False):
