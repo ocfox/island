@@ -48,6 +48,8 @@
           };
         };
 
+        security.sudo.wheelNeedsPassword = false;
+
         services.userborn.enable = true;
       };
     };
