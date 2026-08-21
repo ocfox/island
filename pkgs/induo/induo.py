@@ -780,7 +780,7 @@ def write_disk(target: Target, image: Path, disk: str, is_compressed: bool = Fal
 
     if not is_compressed:
         zstd_proc = subprocess.Popen(
-            ["zstd", "-T0", "-6"],
+            ["zstd", "-T0", "-3"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
