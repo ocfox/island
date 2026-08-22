@@ -1,6 +1,6 @@
 { self, ... }:
 {
-  hosts.minimal = {
+  hosts.mini = {
     system = "x86_64-linux";
     stateVersion = "26.11";
     useBase = false;
@@ -8,21 +8,27 @@
       { ... }:
       {
         imports = with self.modules.nixos; [
+          minimal
           vps
           disko
-          minimal-disko
         ];
 
         users = {
           mutableUsers = false;
           users.root = {
-            hashedPassword = "$6$jVI2tdENaEqUyZGh$rni.joO5US9t9RYM9wlIvia4L1YOObs44Kt3gBcooBJTeSFGyEorciM2CrKMEnzbojpi1KgPPe256i5Q46N1d0";
+            initialHashedPassword = "$6$4HQysWQ6mvyu/mnd$RqL.hhK.t11RrgiIdzHEerR/Nqwk9TVo7nMdPAT0tBnQW39NnwR8mnvIRKtqSQupjdh/zVwzf5KT19.xn4Elf.";
             openssh.authorizedKeys.keys = [
-              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHysCjoqwXAumW+cUCcFZDpC9yLx3Jh7x5du7r21fPE4"
               "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICFP2wSho7RDutjcMwnvPHHMnQcvuqX841gHlQdkpTdc me@s4r.in"
-              "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIHnLWTS5/vPyPFY+tCVYn3Ejf3NQpQzcGnWLQTyE7lbzAAAAC3NzaDpwYXNzZm94 ssh:passfox"
             ];
           };
+        };
+
+        systemd.network.networks."10-eth0" = {
+          networkConfig.DHCP = "ipv4";
+          address = [ "2a01:4f8:1c18:41d0::1/64" ];
+          routes = [
+          { Gateway = "fe80::1"; GatewayOnLink = true; }
+          ];
         };
       };
   };

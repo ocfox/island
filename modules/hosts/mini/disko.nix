@@ -1,8 +1,8 @@
 {
-  flake.modules.nixos.minimal-disko.disko.devices = {
+  flake.modules.nixos.mini.disko.devices = {
     disk.disk1 = {
       type = "disk";
-      device = "/dev/vda";
+      device = "/dev/sda";
       content = {
         type = "gpt";
         partitions = {

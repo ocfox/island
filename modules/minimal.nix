@@ -14,8 +14,20 @@
         (modulesPath + "/profiles/headless.nix")
       ];
 
-      # Disable local Nix package manager
-      nix.enable = false;
+      # Minimal Nix package manager
+      nix = {
+        enable = lib.mkDefault true;
+        channel.enable = lib.mkDefault false;
+      };
+
+      system.tools = {
+        nixos-rebuild.enable = lib.mkDefault false;
+        nixos-option.enable = lib.mkDefault false;
+        nixos-install.enable = lib.mkDefault false;
+        nixos-build-vms.enable = lib.mkDefault false;
+        nixos-enter.enable = lib.mkDefault false;
+        nixos-generate-config.enable = lib.mkDefault false;
+      };
 
       boot.loader = {
         grub.enable = false;
