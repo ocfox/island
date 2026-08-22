@@ -8,6 +8,7 @@ import json
 import os
 import socket
 import subprocess
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -108,38 +109,50 @@ class Target:
 
         fail("incorrect sudo password (3 attempts failed)")
 
-    def run(self, cmd: str, check: bool = True, sudo: bool = False) -> str:
+    def run(
+        self,
+        cmd: str,
+        check: bool = True,
+        sudo: bool = False,
+        timeout: int | None = None,
+    ) -> str:
         quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
         if sudo and self.user and self.user != "root":
             self.ensure_sudo()
-            if self.sudo_pw:
-                proc = subprocess.run(
-                    self.argv() + [f"sudo -S -p '' -- sh -c {quoted_cmd}"],
-                    input=self.sudo_pw + "\n",
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-            else:
-                proc = subprocess.run(
-                    self.argv() + [f"sudo -- sh -c {quoted_cmd}"],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-        else:
-            proc = subprocess.run(
-                self.argv() + [f"sh -c {quoted_cmd}"],
-                capture_output=True,
-                text=True,
-                check=False,
+            cmd_part = (
+                f"sudo -S -p '' -- sh -c {quoted_cmd}"
+                if self.sudo_pw
+                else f"sudo -- sh -c {quoted_cmd}"
             )
+            input_data = self.sudo_pw + "\n" if self.sudo_pw else None
+        else:
+            cmd_part = f"sh -c {quoted_cmd}"
+            input_data = None
 
+        proc = subprocess.run(
+            self.argv() + [cmd_part],
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
         if check and proc.returncode != 0:
             fail(
                 f"ssh {self.raw}: {proc.stderr.strip() or proc.stdout.strip() or f'exit code {proc.returncode}'}"
             )
         return proc.stdout
+
+    def reboot(self):
+        try:
+            self.run(
+                "nohup sh -c 'reboot -f || reboot' </dev/null >/dev/null 2>&1 &",
+                sudo=True,
+                check=False,
+                timeout=5,
+            )
+        except Exception:
+            pass
 
     def pipe(self, data: bytes | Path, remote_file: str, on_chunk=None):
         payload = data if isinstance(data, bytes) else data.read_bytes()
@@ -169,30 +182,6 @@ class Target:
             fail(
                 f"pipe to {remote_file}: {stderr.decode().strip() or f'exit code {proc.returncode}'}"
             )
-
-    def reboot(self):
-        cmd = "sync; (sleep 0.1; reboot -f 2>/dev/null || systemctl reboot -f 2>/dev/null || reboot 2>/dev/null) >/dev/null 2>&1 & reboot -f 2>/dev/null || true"
-        quoted_cmd = "'" + cmd.replace("'", "'\\''") + "'"
-        try:
-            subprocess.run(
-                [
-                    *self.argv()[:-1],
-                    "-o",
-                    "ConnectTimeout=3",
-                    "-o",
-                    "ServerAliveInterval=1",
-                    "-o",
-                    "ServerAliveCountMax=1",
-                    self.argv()[-1],
-                    f"sh -c {quoted_cmd}",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=4,
-                check=False,
-            )
-        except (subprocess.TimeoutExpired, Exception):
-            pass
 
     def is_stage(self, verbose: bool = False) -> int:
         p = self.port or 22
@@ -548,13 +537,20 @@ def build_image(repo: Path, name: str) -> tuple[Path, int, bool]:
         fail(f"no disk image found in {out}")
 
     img = candidates[0]
-    is_compressed = img.name.endswith(".zst")
-    size = (
-        int((out / "size").read_text().strip())
-        if (out / "size").exists()
-        else img.stat().st_size
-    )
-    return img, size, is_compressed
+    if not img.name.endswith(".zst"):
+        cache_dir = Path(tempfile.gettempdir()) / "induo-cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        zst_img = cache_dir / f"{img.parent.name}-{img.name}.zst"
+        if not zst_img.exists() or zst_img.stat().st_mtime < img.stat().st_mtime:
+            with console.status("compressing disk image (zstd -3)..."):
+                subprocess.run(
+                    ["zstd", "-T0", "-3", str(img), "-o", str(zst_img), "-f", "-q"],
+                    check=True,
+                )
+        img = zst_img
+
+    size = img.stat().st_size
+    return img, size, True
 
 
 def cpio_entry(name: str, body: bytes, mode: int) -> bytes:
@@ -912,7 +908,7 @@ def cmd_write(args):
             fail(
                 "target is in RAM stage, specify target disk via --disk (e.g. --disk /dev/vda)"
             )
-        image, _, is_compressed = build_image(repo, name)
+        image, size, is_compressed = build_image(repo, name)
         stage_target = Target(f"root@{target.host}", port=stage_port)
         write_disk(stage_target, image, disk, is_compressed=is_compressed)
         stage_target.reboot()
@@ -935,8 +931,14 @@ def cmd_write(args):
     keys = resolve_keys(repo, name, args.key)
     image, size, is_compressed = build_image(repo, name)
 
+    size_desc = (
+        f"{size / (1024**2):.1f} MiB"
+        if size < 1024**3
+        else f"{size / (1024**3):.2f} GiB"
+    )
+
     console.print(
-        f"deploying [bold]{name}[/] ({size / (1024**3):.1f} GiB) -> {target.raw} on [bold]{disk}[/]"
+        f"deploying [bold]{name}[/] ({size_desc}) -> {target.raw} on [bold]{disk}[/]"
     )
     deploy_and_boot_stage(target, p, make_stage_initrd(keys, p), args.timeout)
 

@@ -92,22 +92,7 @@ EOF
           targetModules = lib.unique (
             config.boot.initrd.availableKernelModules
             ++ config.boot.initrd.kernelModules
-            ++ [
-              "zram"
-              "9p"
-              "9pnet"
-              "9pnet_virtio"
-              "r8169"
-              "tg3"
-              "bnxt_en"
-              "fat"
-              "vfat"
-              "nls_cp437"
-              "nls_iso8859_1"
-              "zstd"
-              "crc32c"
-              "overlay"
-            ]
+            ++ config.boot.kernelModules
           );
         in
         lib.mkForce [

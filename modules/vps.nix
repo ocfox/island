@@ -12,46 +12,143 @@
         growPartition = lib.mkDefault true;
         initrd = {
           availableKernelModules = [
+            # Storage controllers & block devices
             "virtio_pci"
             "virtio_scsi"
             "virtio_blk"
-            "virtio_net"
-            "virtio_rng"
             "nvme"
             "nvme_core"
-            "ena"
-            "xen_blkfront"
-            "xen_scsifront"
-            "xen_netfront"
-            "gve"
-            "hv_storvsc"
-            "hv_netvsc"
-            "mana"
-            "vmw_pvscsi"
-            "vmxnet3"
             "ahci"
             "ata_piix"
             "ata_generic"
             "sd_mod"
             "sr_mod"
-            "ehci_pci"
-            "xhci_pci"
+            "sg"
+            "xen_blkfront"
+            "xen_scsifront"
+            "hv_storvsc"
+            "hv_vmbus"
+            "hv_balloon"
+            "hv_utils"
+            "vmw_pvscsi"
+            "mptspi"
+            "uas"
+            "dm_mod"
+            "fuse"
+
+            # Cloud & physical network interfaces
+            "virtio_net"
+            "net_failover"
+            "failover"
+            "ena"
+            "gve"
+            "hv_netvsc"
+            "mana"
+            "xen_netfront"
+            "vmxnet3"
             "e1000e"
             "e1000"
             "igb"
             "ixgbevf"
+            "r8169"
+            "tg3"
+            "bnxt_en"
             "mlx4_en"
             "mlx5_core"
+
+            # Core network protocols, sockets & netfilter
+            "af_packet"
+            "af_packet_diag"
+            "inet_diag"
+            "unix_diag"
+            "raw_diag"
+            "tcp_diag"
+            "udp_diag"
+            "ip_tunnel"
+            "ip6_tunnel"
+            "tunnel4"
+            "tunnel6"
+            "sit"
+            "nf_tables"
+            "nft_compat"
+            "nft_chain_nat"
+            "nf_nat"
+            "nf_conntrack"
+            "nf_conntrack_netlink"
+            "nft_fib"
+            "nft_fib_inet"
+            "nft_fib_ipv4"
+            "nft_fib_ipv6"
+            "nft_masq"
+            "nft_ct"
+            "nft_reject"
+            "nft_reject_inet"
+            "nft_reject_ipv4"
+            "nft_reject_ipv6"
+            "x_tables"
+            "xt_tcpudp"
+            "xt_conntrack"
+            "xt_addrtype"
+            "xt_comment"
+            "xt_multiport"
+            "xt_nat"
+            "xt_MASQUERADE"
+
+            # Input, console & display
+            "atkbd"
+            "i8042"
+            "serio"
+            "serio_raw"
+            "usbhid"
+            "hid"
+            "hid_generic"
+            "virtio_input"
+            "virtio_console"
+            "virtio_gpu"
+            "hyperv_keyboard"
+
+            # Virtualization bus, hypervisor services & watchdog
+            "virtio"
+            "virtio_ring"
+            "virtio_pci_modern_dev"
+            "virtio_pci_legacy_dev"
+            "virtio_balloon"
+            "virtio_dma_buf"
+            "virtio_mmio"
+            "virtio_rng"
+            "vsock"
+            "vmw_vsock_virtio_transport_common"
+            "vsock_loopback"
+            "i2c_i801"
+            "lpc_ich"
+            "iTCO_wdt"
+            "9p"
+            "9pnet"
+            "9pnet_virtio"
+            "virtiofs"
+
+            # Filesystems & compression
+            "btrfs"
+            "ext4"
+            "vfat"
+            "fat"
+            "xfs"
+            "zstd"
+            "zstd_compress"
+            "crc32c"
+            "nls_cp437"
+            "nls_iso8859_1"
+            "overlay"
+            "zram"
           ];
           kernelModules = [ ];
         };
         kernelModules = [ ];
         extraModulePackages = [ ];
         kernelParams = [
-          "console=tty0"
-          "console=ttyAMA0,115200n8"
-          "console=ttyS0,115200n8"
-          "earlycon"
+          "console=tty1"
+          "console=ttyS0,115200"
+          "console=ttyAMA0,115200"
         ];
         supportedFilesystems = lib.mkDefault [
           "btrfs"
@@ -78,12 +175,6 @@
         nano.enable = lib.mkDefault false;
         bash.completion.enable = lib.mkDefault false;
       };
-
-      services = {
-        pcscd.enable = lib.mkForce false;
-        udisks2.enable = lib.mkDefault false;
-      };
-      security.polkit.enable = lib.mkDefault false;
 
       nix = {
         registry = lib.mkForce { };
