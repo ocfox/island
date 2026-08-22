@@ -1,3 +1,4 @@
+{ self, ... }:
 {
   flake.modules.nixos.minimal =
     {
@@ -9,6 +10,7 @@
     }:
     {
       imports = [
+        self.modules.nixos.limine-minimal
         (modulesPath + "/profiles/perlless.nix")
         (modulesPath + "/profiles/minimal.nix")
         (modulesPath + "/profiles/headless.nix")
@@ -31,42 +33,12 @@
 
       boot.loader = {
         grub.enable = false;
-        limine.enable = false;
+        limine = {
+          enable = lib.mkDefault true;
+          efiInstallAsRemovable = lib.mkDefault true;
+        };
         efi.canTouchEfiVariables = false;
       };
-
-      # Lightweight POSIX shell-based Limine bootloader installer (zero Python/Nix dependencies)
-      system.build.installBootLoader = lib.mkDefault (
-        pkgs.writeShellScript "install-limine" ''
-          set -euo pipefail
-          target="$1"
-          boot="/boot"
-          mkdir -p "$boot/EFI/BOOT" "$boot/nixos"
-
-          cp -f "$target/kernel" "$boot/nixos/kernel"
-          cp -f "$target/initrd" "$boot/nixos/initrd"
-
-          ${if pkgs.stdenv.hostPlatform.isAarch64 then ''
-            cp -f "${pkgs.limine}/share/limine/BOOTAA64.EFI" "$boot/EFI/BOOT/BOOTAA64.EFI"
-          '' else ''
-            cp -f "${pkgs.limine}/share/limine/BOOTX64.EFI" "$boot/EFI/BOOT/BOOTX64.EFI"
-            cp -f "${pkgs.limine}/share/limine/limine-bios.sys" "$boot/limine-bios.sys"
-            if [ -b "/dev/vda" ]; then
-              ${pkgs.limine}/bin/limine bios-install /dev/vda 1 2>/dev/null || true
-            fi
-          ''}
-
-          cat <<EOF > "$boot/limine.conf"
-timeout: 0
-/NixOS Minimal
-    protocol: linux
-    kernel_path: boot():/nixos/kernel
-    cmdline: init=$target/init $(cat "$target/kernel-params")
-    module_path: boot():/nixos/initrd
-EOF
-
-          sync
-        '');
 
       # Kernel and Initrd tuning
       boot.kernelParams = [ "audit=0" ];
