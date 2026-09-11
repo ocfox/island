@@ -18,6 +18,7 @@
           sing-box
           zen
         ];
+        nix.registry.self.flake = self;
         boot.initrd.availableKernelModules = [
           "nvme"
           "xhci_pci"
