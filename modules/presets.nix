@@ -1,4 +1,152 @@
+{ self, config, ... }:
 {
+  # Base system configuration shared across hosts
+  flake.modules.nixos.base =
+    { pkgs, ... }:
+    {
+      imports = with config.flake.modules.nixos; [
+        users
+        dotfiles
+        nix
+        i18n
+        git
+        shell
+      ];
+
+      services = {
+        tailscale.enable = true;
+        pcscd.enable = true;
+        openssh = {
+          enable = true;
+          settings = {
+            PasswordAuthentication = false;
+            KbdInteractiveAuthentication = false;
+          };
+          hostKeys = [
+            {
+              path = "/var/lib/ssh/ssh_host_ed25519_key";
+              type = "ed25519";
+            }
+          ];
+        };
+      };
+
+      hardware.enableRedistributableFirmware = true;
+      environment.systemPackages = with pkgs; [
+        curl
+        bind
+        htop
+        ripgrep
+        age-plugin-yubikey
+      ];
+    };
+
+  # Graphical desktop workstation preset
+  flake.modules.nixos.desktop =
+    { pkgs, ... }:
+    {
+      services.gvfs.enable = true;
+
+      my.packages = with pkgs; [
+        gh
+        nautilus
+        zed-editor
+      ];
+
+      imports = with config.flake.modules.nixos; [
+        helix
+        xdg
+        fonts
+        fcitx
+        audio
+        earlyoom
+        fetch
+        foot
+        mako
+        gtk
+        mpv
+        sway
+      ];
+    };
+
+  # Ultra-minimal headless server profile
+  flake.modules.nixos.minimal =
+    {
+      config,
+      lib,
+      pkgs,
+      modulesPath,
+      ...
+    }:
+    {
+      imports = [
+        (modulesPath + "/profiles/perlless.nix")
+        (modulesPath + "/profiles/minimal.nix")
+        (modulesPath + "/profiles/headless.nix")
+      ];
+
+      nix = {
+        enable = lib.mkDefault true;
+        channel.enable = lib.mkDefault false;
+      };
+
+      system.tools = {
+        nixos-rebuild.enable = lib.mkDefault false;
+        nixos-option.enable = lib.mkDefault false;
+        nixos-install.enable = lib.mkDefault false;
+        nixos-build-vms.enable = lib.mkDefault false;
+        nixos-enter.enable = lib.mkDefault false;
+        nixos-generate-config.enable = lib.mkDefault false;
+      };
+
+      boot.loader = {
+        grub.enable = false;
+        limine = {
+          enable = lib.mkDefault true;
+          efiInstallAsRemovable = lib.mkDefault true;
+        };
+        efi.canTouchEfiVariables = false;
+      };
+
+      boot.kernelParams = [ "audit=0" ];
+      boot.initrd.includeDefaultModules = false;
+      boot.initrd.systemd.tpm2.enable = false;
+
+      i18n = {
+        defaultLocale = lib.mkForce "C.UTF-8";
+        supportedLocales = [ "C.UTF-8/UTF-8" ];
+        glibcLocales = null;
+        extraLocales = lib.mkForce [ ];
+        extraLocaleSettings = lib.mkForce { };
+      };
+
+      systemd.coredump.enable = false;
+      boot.initrd.services.lvm.enable = false;
+      services.lvm.enable = false;
+      boot.growPartition = false;
+
+      security.sudo-rs.enable = true;
+      security.sudo.enable = false;
+
+      services.openssh = {
+        enable = true;
+        settings = {
+          PermitRootLogin = "prohibit-password";
+          PasswordAuthentication = false;
+          KbdInteractiveAuthentication = false;
+        };
+        hostKeys = [
+          {
+            path = "/var/lib/ssh/ssh_host_ed25519_key";
+            type = "ed25519";
+          }
+        ];
+      };
+
+      environment.systemPackages = [ pkgs.bashInteractive ];
+    };
+
+  # Cloud VPS configuration
   flake.modules.nixos.vps =
     {
       lib,

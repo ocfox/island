@@ -1,4 +1,4 @@
-{ inputs, withSystem, ... }:
+{ self, inputs, withSystem, ... }:
 {
   imports = [ inputs.flake-parts.flakeModules.modules ];
 
@@ -17,12 +17,12 @@
           allowUnfreePredicate = _pkg: true;
         };
         overlays = [
-          inputs.self.overlays.default
+          self.overlays.default
         ];
       };
       packages = lib.packagesFromDirectoryRecursive {
         callPackage = lib.callPackageWith pkgs;
-        directory = ../pkgs;
+        directory = self + "/pkgs";
       };
     };
 
