@@ -8,7 +8,6 @@
         users
         dotfiles
         nix
-        i18n
         git
         shell
       ];
@@ -54,6 +53,7 @@
       ];
 
       imports = with config.flake.modules.nixos; [
+        i18n
         helix
         xdg
         fonts
