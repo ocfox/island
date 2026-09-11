@@ -15,18 +15,20 @@
         [
           "d /home/${user}/.config - ${user} users - -"
         ]
-        ++ lib.flatten (
-          lib.mapAttrsToList (
+        ++ (
+          config.my.config
+          |> lib.mapAttrsToList (
             key: source:
             let
               targetPath = "/home/${user}/.config/${key}";
-              dir = "/home/${user}/.config/${lib.strings.removeSuffix (lib.last (lib.splitString "/" key)) key}";
+              dir = dirOf targetPath;
             in
             [
               "d ${dir} - ${user} users - -"
               "L+ ${targetPath} - ${user} users - ${source}"
             ]
-          ) config.my.config
+          )
+          |> lib.concatLists
         );
     };
 }
