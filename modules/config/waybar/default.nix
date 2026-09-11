@@ -21,10 +21,10 @@
         GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
         cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
         if [ "$cur" = "prefer-dark" ]; then
-          ${pkgs.procps}/bin/pkill -USR2 -f "foot"
+          ${lib.getExe' pkgs.procps "pkill"} -USR2 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-light"
         else
-          ${pkgs.procps}/bin/pkill -USR1 -f "foot"
+          ${lib.getExe' pkgs.procps "pkill"} -USR1 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-dark"
         fi
       '';
@@ -61,8 +61,8 @@
             "disable-scroll" = true;
             format = "{icon}";
             "all-outputs" = true;
-            "format-icons" = lib.listToAttrs (
-              lib.imap1 (i: icon: lib.nameValuePair (toString i) icon) [
+            "format-icons" =
+              [
                 "い"
                 "ろ"
                 "は"
@@ -74,7 +74,8 @@
                 "り"
                 "ぬ"
               ]
-            );
+              |> lib.imap1 (i: icon: lib.nameValuePair (toString i) icon)
+              |> lib.listToAttrs;
           };
           idle_inhibitor = {
             format = "{icon}";

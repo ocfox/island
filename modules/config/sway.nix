@@ -74,7 +74,7 @@
         bindsym Mod4+Shift+m exec ${lib.getExe pkgs.local.monitor-toggle}
         bindsym Mod4+Shift+minus move scratchpad
         bindsym Mod4+Shift+p exec ${lib.getExe pkgs.local.grimshot} --notify --cursor copy output
-        bindsym Mod4+Shift+i exec ${pkgs.procps}/bin/pkill -USR1 waybar
+        bindsym Mod4+Shift+i exec ${lib.getExe' pkgs.procps "pkill"} -USR1 waybar
         bindsym Mod4+Shift+q kill
         bindsym Mod4+Shift+r exec ${lib.getExe pkgs.local.recorder-toggle}
         bindsym Mod4+Shift+s exec ${lib.getExe pkgs.local.grimshot} --notify copy area
