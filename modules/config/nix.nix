@@ -8,11 +8,7 @@
           nixpkgs.flake = inputs.nixpkgs;
         };
 
-        extraOptions = ''
-          experimental-features = nix-command flakes ca-derivations
-          keep-outputs = true
-          keep-derivations = true
-        '';
+        channel.enable = false;
 
         gc = {
           automatic = true;
@@ -21,6 +17,15 @@
         };
 
         settings = {
+          experimental-features = [
+            "nix-command"
+            "flakes"
+            "ca-derivations"
+            "pipe-operators"
+          ];
+          keep-outputs = true;
+          keep-derivations = true;
+
           trusted-users = [ config.my.name ];
           warn-dirty = false;
 
