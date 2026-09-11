@@ -171,7 +171,7 @@
         config."sway/config" = pkgs.writeText "sway-config" swayConfig;
       };
 
-      systemd.packages = [ pkgs.local.xwayland-satellite ];
+      systemd.packages = [ pkgs.xwayland-satellite ];
       systemd.user.targets.graphical-session.wants = [ "xwayland-satellite.service" ];
 
       environment.sessionVariables = {

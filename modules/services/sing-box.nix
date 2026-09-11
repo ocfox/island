@@ -85,7 +85,7 @@
             ExecStartPre = [
               "+${pkgs.nftables}/bin/nft -f ${singboxNft}"
             ];
-            ExecStart = "${pkgs.local.sing-box}/bin/sing-box run -c /var/lib/sing-box/config.json -D /var/lib/sing-box";
+            ExecStart = "${lib.getExe pkgs.sing-box} run -c /var/lib/sing-box/config.json -D /var/lib/sing-box";
             ExecStopPost = [
               "+-${pkgs.nftables}/bin/nft delete table inet singbox"
             ];
@@ -116,7 +116,7 @@
             curl
             coreutils
             systemd
-            local.sing-box
+            sing-box
           ];
           serviceConfig = {
             Type = "oneshot";
