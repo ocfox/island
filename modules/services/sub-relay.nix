@@ -26,9 +26,7 @@
           group = "caddy";
         };
 
-        systemd.services.caddy.serviceConfig.EnvironmentFile = [
-          config.kix.secrets.${cfg.secretName}.path
-        ];
+        services.caddy.environmentFile = config.kix.secrets.${cfg.secretName}.path;
 
         security.acme.certs = lib.mkIf (cfg.domain != null) {
           ${cfg.domain} = {

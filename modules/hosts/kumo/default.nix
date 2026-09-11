@@ -33,8 +33,9 @@
           "net.ipv6.conf.all.forwarding" = 1;
         };
 
-        networking.nftables.ruleset = ''
-          table inet filter {
+        networking.nftables.tables.filter = {
+          family = "inet";
+          content = ''
             chain input {
               type filter hook input priority filter; policy drop;
 
@@ -71,8 +72,8 @@
             chain output {
               type filter hook output priority filter; policy accept;
             }
-          }
-        '';
+          '';
+        };
 
         systemd.network.networks."10-eth0" = {
           address = [

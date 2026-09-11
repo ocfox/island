@@ -2,7 +2,7 @@
   flake.modules.nixos.git =
     { pkgs, ... }:
     {
-      environment.systemPackages = [ pkgs.git ];
+      programs.git.enable = true;
 
       my.packages = [ pkgs.lazygit ];
     };

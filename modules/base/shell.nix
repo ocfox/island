@@ -42,13 +42,8 @@ in
         set -U fish_greeting
       '';
 
-      interactiveShellInit = ''
-        ${lib.getExe pkgs.zoxide} init fish | source
-      '';
-
       fishPackages = with pkgs; [
         eza
-        zoxide
         just
         systemctl-tui
       ];
@@ -59,12 +54,13 @@ in
       users.users.${config.my.name}.shell = pkgs.fish;
 
       programs.fzf.keybindings = true;
+      programs.zoxide.enable = true;
 
       programs.fish = {
         enable = true;
+        useBabelfish = true;
         shellAliases = shellAliases;
         shellInit = shellInit;
-        interactiveShellInit = interactiveShellInit;
       };
 
       my.packages = fishPackages;

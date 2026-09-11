@@ -8,27 +8,36 @@
         description = "Declarative dotfile management for the user, mapping directly to ~/.config/";
       };
 
-      config.systemd.tmpfiles.rules =
+      config.systemd.tmpfiles.settings."10-dotfiles" =
         let
           user = config.my.name;
+          baseDir = {
+            "/home/${user}/.config".d = {
+              inherit user;
+              group = "users";
+            };
+          };
+          rules =
+            config.my.config
+            |> lib.mapAttrsToList (
+              key: source:
+              let
+                targetPath = "/home/${user}/.config/${key}";
+                dir = dirOf targetPath;
+              in
+              {
+                ${dir}.d = {
+                  inherit user;
+                  group = "users";
+                };
+                ${targetPath}."L+" = {
+                  argument = "${source}";
+                  inherit user;
+                  group = "users";
+                };
+              }
+            );
         in
-        [
-          "d /home/${user}/.config - ${user} users - -"
-        ]
-        ++ (
-          config.my.config
-          |> lib.mapAttrsToList (
-            key: source:
-            let
-              targetPath = "/home/${user}/.config/${key}";
-              dir = dirOf targetPath;
-            in
-            [
-              "d ${dir} - ${user} users - -"
-              "L+ ${targetPath} - ${user} users - ${source}"
-            ]
-          )
-          |> lib.concatLists
-        );
+        lib.mkMerge ([ baseDir ] ++ rules);
     };
 }

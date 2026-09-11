@@ -57,50 +57,56 @@
           "net.ipv6.conf.all.forwarding" = 1;
         };
 
-        networking.nftables.ruleset = ''
-          table inet filter {
-            chain input {
-              type filter hook input priority filter; policy drop;
+        networking.nftables.tables = {
+          filter = {
+            family = "inet";
+            content = ''
+              chain input {
+                type filter hook input priority filter; policy drop;
 
-              iif lo accept
-              iifname "wg0" accept
-              ct state { established, related } accept
-              ct state invalid drop
+                iif lo accept
+                iifname "wg0" accept
+                ct state { established, related } accept
+                ct state invalid drop
 
-              ip6 nexthdr icmpv6 icmpv6 type {
-                echo-request,
-                nd-neighbor-solicit,
-                nd-neighbor-advert,
-                nd-router-advert,
-                mld-listener-query,
-              } accept
-              ip protocol icmp icmp type echo-request accept
+                ip6 nexthdr icmpv6 icmpv6 type {
+                  echo-request,
+                  nd-neighbor-solicit,
+                  nd-neighbor-advert,
+                  nd-router-advert,
+                  mld-listener-query,
+                } accept
+                ip protocol icmp icmp type echo-request accept
 
-              tcp dport 22 accept
-              tcp dport 443 accept
-              udp dport 51820 accept
-            }
+                tcp dport 22 accept
+                tcp dport 443 accept
+                udp dport 51820 accept
+              }
 
-            chain forward {
-              type filter hook forward priority filter; policy drop;
+              chain forward {
+                type filter hook forward priority filter; policy drop;
 
-              iifname "wg0" oifname "eth0" accept
-              iifname "eth0" oifname "wg0" ct state { established, related } accept
-            }
+                iifname "wg0" oifname "eth0" accept
+                iifname "eth0" oifname "wg0" ct state { established, related } accept
+              }
 
-            chain output {
-              type filter hook output priority filter; policy accept;
-            }
-          }
+              chain output {
+                type filter hook output priority filter; policy accept;
+              }
+            '';
+          };
 
-          table ip nat {
-            chain postrouting {
-              type nat hook postrouting priority srcnat; policy accept;
+          nat = {
+            family = "ip";
+            content = ''
+              chain postrouting {
+                type nat hook postrouting priority srcnat; policy accept;
 
-              iifname "wg0" oifname "eth0" masquerade
-            }
-          }
-        '';
+                iifname "wg0" oifname "eth0" masquerade
+              }
+            '';
+          };
+        };
       };
   };
 }

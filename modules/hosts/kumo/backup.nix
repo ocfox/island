@@ -11,6 +11,7 @@
       # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and RESTIC_PASSWORD.
       services.restic.backups.b2 = {
         initialize = true;
+        createWrapper = true;
         # S3 path uses the bucket NAME (not the bucket id).
         repository = "s3:https://s3.us-west-004.backblazeb2.com/kumoback";
         environmentFile = config.kix.secrets.restic-b2.path;
