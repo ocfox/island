@@ -13,6 +13,9 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-experimental-features = pipe-operators
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v15
