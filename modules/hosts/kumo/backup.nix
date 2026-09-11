@@ -17,6 +17,7 @@
         paths = [
           "/var/lib/memos"
           "/var/lib/vaultwarden"
+          "/var/lib/ntfy-sh"
           "/var/backup/postgres"
         ];
         backupPrepareCommand = ''
@@ -29,6 +30,11 @@
         '';
         backupCleanupCommand = ''
           rm -f /var/backup/postgres/mastodon.dump
+          ${pkgs.curl}/bin/curl -s \
+            -H "Title: Backup Succeeded" \
+            -H "Tags: white_check_mark" \
+            -d "kumo: Daily backup to Backblaze B2 completed successfully" \
+            http://127.0.0.1:2586/backup || true
         '';
         timerConfig = {
           OnCalendar = "daily";
@@ -40,6 +46,32 @@
           "--keep-weekly 4"
           "--keep-monthly 6"
         ];
+      };
+
+      systemd.services.restic-backups-b2.onFailure = [ "notify-failure@%n.service" ];
+
+      # Disk space monitoring for the 80GB disk (hourly check, alerts if >= 80%)
+      systemd.services.check-disk-space = {
+        description = "Check disk space and notify if low";
+        serviceConfig.Type = "oneshot";
+        script = ''
+          USAGE=$(${pkgs.coreutils}/bin/df -h / | ${pkgs.gawk}/bin/awk 'NR==2 {print $5}' | ${pkgs.coreutils}/bin/tr -d '%')
+          if [ "$USAGE" -ge 80 ]; then
+            ${pkgs.curl}/bin/curl -s \
+              -H "Title: Disk Space Warning" \
+              -H "Priority: high" \
+              -H "Tags: warning,floppy_disk" \
+              -d "kumo: Disk usage on / has reached ''${USAGE}%" \
+              http://127.0.0.1:2586/system || true
+          fi
+        '';
+      };
+      systemd.timers.check-disk-space = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "hourly";
+          Persistent = true;
+        };
       };
     };
 }

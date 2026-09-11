@@ -14,14 +14,10 @@
           vaultwarden
           mastodon
           monitoring
-          hermes
+          ntfy
           sub-relay
         ];
 
-        # disko lays this disk out as EF02 (priority 1) + ESP + root, so the
-        # BIOS stage has a partition of its own to live in. Confirm the index
-        # with `sgdisk -p /dev/sda` before switching: a failing bios-install
-        # does not fail activation, it just leaves the old boot code in place.
         boot.loader.limine = {
           enable = true;
           efiSupport = true;
@@ -89,7 +85,7 @@
             DHCP = "no";
             IPv6AcceptRA = false;
           };
-          routes = [ { Gateway = "2401:b60:e0fd:2b::1"; } ];
+          routes = [ { Gateway = "2401:b60:e0fd:11::1"; } ];
         };
 
         # The DC gives no IPv4 at all, so it comes from light over WireGuard:
@@ -120,7 +116,7 @@
 
 
         services.sub-relay.enable = true;
-        services.hermes.enable = true;
+        services.ntfy.enable = true;
         services.vaultwarden.enable = true;
         services.memos.enable = true;
         services.mastodon = {
@@ -140,6 +136,17 @@
         };
 
         services.monitoring-stack.enable = true;
+
+        # Crash alerts to ntfy for critical system services
+        systemd.services = {
+          caddy.onFailure = [ "notify-failure@%n.service" ];
+          postgresql.onFailure = [ "notify-failure@%n.service" ];
+          vaultwarden.onFailure = [ "notify-failure@%n.service" ];
+          memos.onFailure = [ "notify-failure@%n.service" ];
+          mastodon-web.onFailure = [ "notify-failure@%n.service" ];
+          mastodon-sidekiq.onFailure = [ "notify-failure@%n.service" ];
+          wireguard-wg0.onFailure = [ "notify-failure@%n.service" ];
+        };
       };
   };
 }

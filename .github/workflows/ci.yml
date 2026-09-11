@@ -26,3 +26,27 @@ jobs:
       - name: Build system toplevels
         run: |
           nix build .#nixosConfigurations.{gallery,kumo,light}.config.system.build.toplevel --no-link
+
+      - name: Notify ntfy
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          TOKEN="${{ secrets.NTFY_TOKEN }}"
+          AUTH_HEADER=()
+          if [ -n "$TOKEN" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer $TOKEN")
+          fi
+          if [ "$STATUS" = "success" ]; then
+            curl -s "${AUTH_HEADER[@]}" \
+              -H "Title: Island CI Succeeded" \
+              -H "Tags: white_check_mark" \
+              -d "CI build and Cachix push succeeded on master" \
+              https://ntfy.s4r.in/ci || true
+          else
+            curl -s "${AUTH_HEADER[@]}" \
+              -H "Title: Island CI Failed" \
+              -H "Priority: high" \
+              -H "Tags: x" \
+              -d "CI build failed on master (${{ github.sha }})" \
+              https://ntfy.s4r.in/ci || true
+          fi

@@ -27,6 +27,7 @@ jobs:
           nix shell nixpkgs#just --command just update
 
       - name: Create Pull Request
+        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: auto-update-pkgs
@@ -35,3 +36,26 @@ jobs:
             Automated weekly update of packages in `pkgs/` using `nix-update`.
           commit-message: "chore(pkgs): weekly automated package updates"
           delete-branch: true
+
+      - name: Notify ntfy
+        if: always()
+        run: |
+          TOKEN="${{ secrets.NTFY_TOKEN }}"
+          AUTH_HEADER=()
+          if [ -n "$TOKEN" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer $TOKEN")
+          fi
+          if [ "${{ job.status }}" != "success" ]; then
+            curl -s "${AUTH_HEADER[@]}" \
+              -H "Title: Weekly Updates Failed" \
+              -H "Priority: high" \
+              -H "Tags: x" \
+              -d "island: automated weekly package updates failed" \
+              https://ntfy.s4r.in/ci || true
+          elif [ "${{ steps.cpr.outputs.pull-request-number }}" != "" ]; then
+            curl -s "${AUTH_HEADER[@]}" \
+              -H "Title: Weekly Updates PR Created" \
+              -H "Tags: package" \
+              -d "island: package update PR #${{ steps.cpr.outputs.pull-request-number }} created" \
+              https://ntfy.s4r.in/ci || true
+          fi
