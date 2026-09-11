@@ -48,7 +48,10 @@
         ];
       };
 
-      systemd.services.restic-backups-b2.onFailure = [ "notify-failure@%n.service" ];
+      systemd.services.restic-backups-b2 = {
+        onFailure = [ "notify-failure@%p.service" ];
+        restartIfChanged = false;
+      };
 
       # Disk space monitoring for the 80GB disk (hourly check, alerts if >= 80%)
       systemd.services.check-disk-space = {

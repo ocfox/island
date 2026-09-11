@@ -139,13 +139,19 @@
 
         # Crash alerts to ntfy for critical system services
         systemd.services = {
-          caddy.onFailure = [ "notify-failure@%n.service" ];
-          postgresql.onFailure = [ "notify-failure@%n.service" ];
-          vaultwarden.onFailure = [ "notify-failure@%n.service" ];
-          memos.onFailure = [ "notify-failure@%n.service" ];
-          mastodon-web.onFailure = [ "notify-failure@%n.service" ];
-          mastodon-sidekiq.onFailure = [ "notify-failure@%n.service" ];
-          wireguard-wg0.onFailure = [ "notify-failure@%n.service" ];
+          caddy.onFailure = [ "notify-failure@%p.service" ];
+          postgresql.onFailure = [ "notify-failure@%p.service" ];
+          vaultwarden.onFailure = [ "notify-failure@%p.service" ];
+          memos.onFailure = [ "notify-failure@%p.service" ];
+          mastodon-web.onFailure = [ "notify-failure@%p.service" ];
+          mastodon-sidekiq.onFailure = [ "notify-failure@%p.service" ];
+          wireguard-wg0.onFailure = [ "notify-failure@%p.service" ];
+
+          # Ensure media auto-remove doesn't run during rebuild and waits for redis/postgres
+          mastodon-media-auto-remove = {
+            after = [ "redis-mastodon.service" "postgresql.service" ];
+            restartIfChanged = false;
+          };
         };
       };
   };

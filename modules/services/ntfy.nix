@@ -46,10 +46,15 @@
 
         systemd.services."notify-failure@" = {
           description = "Send service failure alert to ntfy for %i";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${pkgs.curl}/bin/curl -s -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: warning' -d 'Service %i failed on %H' http://127.0.0.1:${toString cfg.port}/system";
-          };
+          serviceConfig.Type = "oneshot";
+          script = ''
+            ${pkgs.curl}/bin/curl -s -m 5 \
+              -H 'Title: Service Failure' \
+              -H 'Priority: high' \
+              -H 'Tags: warning' \
+              -d "Service %i failed on %H" \
+              http://127.0.0.1:${toString cfg.port}/system || true
+          '';
         };
 
         security.acme.certs = lib.mkIf (cfg.domain != null) {
