@@ -209,6 +209,6 @@
       services.gnome.gnome-keyring.enable = true;
       security.pam.services.login.enableGnomeKeyring = true;
       # gcr provides the gcr-prompter used for unlock/confirm dialogs.
-      services.dbus.packages = [ pkgs.gcr ];
+      services.dbus.packages = [ pkgs.gcr_4 ];
     };
 }
