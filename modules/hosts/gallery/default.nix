@@ -19,6 +19,12 @@
           zen
         ];
         nix.registry.self.flake = self;
+        boot.loader.limine.extraEntries = ''
+          /Windows
+              comment: Windows Boot Manager (nvme0n1p4)
+              protocol: efi_chainload
+              path: boot():/EFI/Microsoft/Boot/bootmgfw.efi
+        '';
         boot.initrd.availableKernelModules = [
           "nvme"
           "xhci_pci"
