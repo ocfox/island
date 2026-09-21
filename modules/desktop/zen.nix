@@ -4,7 +4,16 @@
     { pkgs, ... }:
     {
       my.packages = [
-        inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+        (pkgs.wrapFirefox
+          (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.zen-browser-unwrapped.overrideAttrs (old: {
+            passthru = (old.passthru or { }) // {
+              withFFmpeg = true;
+              withGSSAPI = true;
+            };
+          }))
+          {
+            pname = "zen-browser";
+          })
       ];
     };
 }
