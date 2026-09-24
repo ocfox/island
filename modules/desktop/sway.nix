@@ -14,6 +14,11 @@
         name = "golden-fish";
         hash = "sha256-MUjitS6MOtmwncu0WVhpM2LMH8/5Bvap8AE6JPnYPbE=";
       };
+      icc = pkgs.fetchurl {
+        url = "https://s3.s4r.in/279c9.icc";
+        name = "279c9.icc";
+        hash = "sha256-Igh6nsu4oKqDWTc4/c98DbH645hN5BjyGU9/xIvBbTw=";
+      };
       swayConfig = ''
         font pango:monospace 8.000000
         floating_modifier Mod4
@@ -114,6 +119,7 @@
           position 0 0
           scale 3
           render_bit_depth 10
+          color_profile icc ${icc}
           hdr off
         }
 
