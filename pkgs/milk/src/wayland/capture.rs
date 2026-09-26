@@ -430,6 +430,18 @@ impl CaptureSession {
         self.state.color_info
     }
 
+    /// Captures a frame from a Wayland output.
+    ///
+    /// TODO(multi-monitor): Currently, milk captures from a single output (either specified via
+    /// `-o <name>` or falling back to the first detected output).
+    /// To support full multi-monitor setups:
+    /// 1. Full-desktop spanning capture: calculate the bounding box bounding all active `wl_output`
+    ///    geometries, capture each output concurrently via screencopy, and composite/blit their
+    ///    frames into a single combined canvas.
+    /// 2. Cross-monitor region capture: detect when a `Geometry` intersects multiple outputs,
+    ///    crop each intersecting sub-region, and stitch them onto the final target canvas.
+    ///
+    /// Deferred for now as single-monitor ultra-low latency (<200ms) is the current priority.
     pub fn capture(
         mut self,
         target_output_name: Option<&str>,
