@@ -1,0 +1,15 @@
+[package]
+name = "milk"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
+rustix = { version = "0.38", features = ["fs", "shm", "mm"] }
+rayon = "1.10"
+libdeflater = "1.23"
+crc32fast = "1.4"
+argh = "0.1"
+
