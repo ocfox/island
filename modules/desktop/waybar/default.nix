@@ -29,18 +29,6 @@
         fi
       '';
 
-      brightness = pkgs.writeShellScriptBin "waybar-brightness" ''
-        ${pkgs.ddcutil}/bin/ddcutil getvcp 0x10 --brief 2>/dev/null | ${pkgs.gawk}/bin/awk '{print $4}'
-      '';
-
-      brightness_up = pkgs.writeShellScriptBin "waybar-brightness-up" ''
-        ${pkgs.ddcutil}/bin/ddcutil setvcp 0x10 + 5
-      '';
-
-      brightness_down = pkgs.writeShellScriptBin "waybar-brightness-down" ''
-        ${pkgs.ddcutil}/bin/ddcutil setvcp 0x10 - 5
-      '';
-
       waybarSettings = [
         {
           layer = "top";
@@ -156,10 +144,11 @@
           };
 
           "custom/bright" = {
-            exec = lib.getExe brightness;
+            exec = "${pkgs.local.lumid}/bin/lumid -c card1-DP-2 get";
             format = "{}%";
-            "on-scroll-up" = "${lib.getExe brightness_up}";
-            "on-scroll-down" = "${lib.getExe brightness_down}";
+            "on-scroll-up" = "${pkgs.local.lumid}/bin/lumid -c card1-DP-2 +1";
+            "on-scroll-down" = "${pkgs.local.lumid}/bin/lumid -c card1-DP-2 -1";
+            signal = 8;
             interval = "once";
             tooltip = false;
           };
@@ -169,7 +158,7 @@
     {
       my.packages = [
         pkgs.pwvucontrol
-        pkgs.ddcutil
+        pkgs.local.lumid
       ];
 
       programs.waybar.enable = true;
