@@ -37,39 +37,4 @@ impl RgbaImage {
     pub fn row_bytes(&self) -> usize {
         self.width as usize * 4
     }
-
-    #[inline]
-    pub fn row_slice(&self, y: usize) -> &[u8] {
-        let row_len = self.row_bytes();
-        let start = y * row_len;
-        &self.data[start..start + row_len]
-    }
-}
-
-/// Contiguous buffer formatted for PNG compression where each scanline is prefixed
-/// by a 1-byte PNG filter indicator (e.g. FilterType 1: Sub).
-///
-/// Total size: `height * (width * 4 + 1)`.
-pub struct FilteredScanlines {
-    pub width: u32,
-    pub data: Vec<u8>,
-}
-
-impl FilteredScanlines {
-    pub fn new(width: u32, height: u32) -> Self {
-        let line_len = (width as usize * 4) + 1;
-        let total_size = line_len
-            .checked_mul(height as usize)
-            .expect("FilteredScanlines buffer size overflow");
-
-        Self {
-            width,
-            data: vec![0u8; total_size],
-        }
-    }
-
-    #[inline]
-    pub fn line_bytes(&self) -> usize {
-        (self.width as usize * 4) + 1
-    }
 }
