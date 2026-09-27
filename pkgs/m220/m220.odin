@@ -318,6 +318,10 @@ transact :: proc(f: ^os.File, cmd: u8, body: []u8 = nil, verbose := false) -> (r
 				n, _ := os.read(f, rx[:])
 				if n >= 32 && rx[0] == cmd {
 					if rx[1] == 0 {
+						if rx[31] != checksum(rx[4:31]) {
+							if verbose do fmt.eprintfln("[debug] cmd 0x%02x checksum mismatch: got 0x%02x, expected 0x%02x", cmd, rx[31], checksum(rx[4:31]))
+							continue
+						}
 						copy(res[:], rx[:32])
 						return res, true
 					}
