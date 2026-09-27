@@ -1,0 +1,10 @@
+# Allow the active local user to control the RGB on reference AMD RX 6800/6800XT
+# GPUs (Cooler Master HID controller, USB 2516:014d) without root.
+#
+# TAG+="uaccess" grants the logged-in seat user access via systemd-logind.
+# MODE 0660 is a fallback for setups without logind seat management.
+#
+# NixOS: add the rx6800xt package to services.udev.packages, e.g.
+#   services.udev.packages = [ pkgs.local.rx6800xt ];
+
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2516", ATTRS{idProduct}=="014d", MODE="0660", TAG+="uaccess"
