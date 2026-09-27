@@ -148,7 +148,6 @@
             format = "{}%";
             "on-scroll-up" = "${pkgs.local.lumid}/bin/lumid -c card1-DP-2 +1";
             "on-scroll-down" = "${pkgs.local.lumid}/bin/lumid -c card1-DP-2 -1";
-            signal = 8;
             interval = "once";
             tooltip = false;
           };

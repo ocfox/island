@@ -35,7 +35,6 @@ const MIN_BRIGHTNESS: i32 = 0;
 const MAX_BRIGHTNESS: i32 = 100;
 const DEFAULT_BRIGHTNESS: u32 = 50;
 const MAX_I2C_BUS_PROBE: u32 = 32;
-const WAYBAR_SIGNAL: u32 = 8;
 
 // ============================================================================
 // OS Primitives
@@ -154,16 +153,23 @@ const Display = struct {
     }
 
     pub fn getBrightness(self: Display) !u8 {
-        const req = GetVcpPacket.init();
-        _ = try write(self.fd, std.mem.asBytes(&req));
+        for (0..3) |_| {
+            const req = GetVcpPacket.init();
+            _ = try write(self.fd, std.mem.asBytes(&req));
 
-        sleepMs(VESA_RESPONSE_DELAY_MS);
+            sleepMs(VESA_RESPONSE_DELAY_MS);
 
-        // SAFETY: buffer is populated by the subsequent read call
-        var reply: VcpReply = undefined;
-        const n = try read(self.fd, std.mem.asBytes(&reply));
-        if (n >= DDC_REPLY_MIN_BYTES and reply.cmd == DDC_CMD_GET_VCP_REPLY and reply.result == DDC_REPLY_OK and reply.feature == VCP_FEATURE_BRIGHTNESS) {
-            return reply.cur_lo;
+            var reply: VcpReply = undefined;
+            const n = read(self.fd, std.mem.asBytes(&reply)) catch continue;
+            if (n < DDC_REPLY_MIN_BYTES) continue;
+            if (reply.cmd != DDC_CMD_GET_VCP_REPLY or reply.result != DDC_REPLY_OK or reply.feature != VCP_FEATURE_BRIGHTNESS) continue;
+
+            // DDC/CI checksum: seed 0x50 (Host Virtual Address) XOR all reply bytes
+            var c: u8 = 0x50;
+            for (std.mem.asBytes(&reply)[0..10]) |b| c ^= b;
+            if (c == reply.checksum) {
+                return reply.cur_lo;
+            }
         }
         return error.InvalidDdcReply;
     }
@@ -271,19 +277,6 @@ fn runWorker(lock: Lock, connector: []const u8) void {
     }
 }
 
-fn notifyWaybar() void {
-    const pid = linux.fork();
-    if (pid == 0) {
-        var sig_arg_buf: [16]u8 = undefined;
-        const sig_arg = std.fmt.bufPrintZ(&sig_arg_buf, "-RTMIN+{d}", .{WAYBAR_SIGNAL}) catch "-RTMIN+8";
-        const argv = [_:null]?[*:0]const u8{ "pkill", sig_arg.ptr, "waybar", null };
-        const envp = [_:null]?[*:0]const u8{null};
-        _ = linux.execve("/run/current-system/sw/bin/pkill", &argv, &envp);
-        _ = linux.execve("/usr/bin/pkill", &argv, &envp);
-        linux.exit(0);
-    }
-}
-
 // ============================================================================
 // Actions & CLI
 // ============================================================================
@@ -314,8 +307,6 @@ fn handleStep(connector: []const u8, delta: i32) void {
     const msg = std.fmt.bufPrint(&out_buf, "{d}\n", .{new_target}) catch "";
     _ = write(STDOUT_FD, msg) catch return;
 
-    notifyWaybar();
-
     if (Lock.tryAcquire(connector)) |lock| {
         const pid = linux.fork();
         if (pid == 0) {
@@ -336,8 +327,6 @@ fn handleSet(connector: []const u8, val: u32) void {
     var out_buf: [16]u8 = undefined;
     const msg = std.fmt.bufPrint(&out_buf, "{d}\n", .{target}) catch "";
     _ = write(STDOUT_FD, msg) catch return;
-
-    notifyWaybar();
 
     if (Lock.tryAcquire(connector)) |lock| {
         const pid = linux.fork();
