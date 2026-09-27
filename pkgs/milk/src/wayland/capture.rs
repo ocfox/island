@@ -44,6 +44,8 @@ pub struct OutputEntry {
     pub name: Option<String>,
     pub x: i32,
     pub y: i32,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -114,6 +116,8 @@ impl Dispatch<WlRegistry, ()> for WaylandState {
                         name: None,
                         x: 0,
                         y: 0,
+                        width: 0,
+                        height: 0,
                     });
                 }
                 "wl_shm" => {
@@ -152,6 +156,16 @@ impl Dispatch<WlOutput, ()> for WaylandState {
                 wl_output::Event::Geometry { x, y, .. } => {
                     entry.x = x;
                     entry.y = y;
+                }
+                wl_output::Event::Mode { flags, width, height, .. } => {
+                    let is_current = match flags {
+                        WEnum::Value(f) => f.contains(wl_output::Mode::Current),
+                        WEnum::Unknown(u) => (u & 1) != 0,
+                    };
+                    if is_current {
+                        entry.width = width;
+                        entry.height = height;
+                    }
                 }
                 _ => {}
             }
@@ -456,6 +470,22 @@ impl CaptureSession {
                 .find(|o| o.name.as_deref() == Some(name))
                 .map(|o| (o.wl_output.clone(), o.x, o.y))
                 .ok_or_else(|| MilkError::OutputNotFound(name.to_string()))?
+        } else if let Some(geom) = geometry {
+            // Find output containing the region top-left/center
+            let target = self
+                .state
+                .outputs
+                .iter()
+                .find(|o| {
+                    let w = if o.width > 0 { o.width } else { i32::MAX / 2 };
+                    let h = if o.height > 0 { o.height } else { i32::MAX / 2 };
+                    geom.x >= o.x && geom.x < o.x + w && geom.y >= o.y && geom.y < o.y + h
+                })
+                .or_else(|| self.state.outputs.first())
+                .ok_or_else(|| {
+                    MilkError::CaptureFailed("No Wayland outputs detected".to_string())
+                })?;
+            (target.wl_output.clone(), target.x, target.y)
         } else {
             self.state
                 .outputs
@@ -513,6 +543,8 @@ impl CaptureSession {
                 "Compositor reported frame failed".to_string(),
             ));
         }
+
+        let color_info = self.state.color_info;
 
         let buffer_info = self
             .state

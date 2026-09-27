@@ -70,15 +70,23 @@ pub fn swizzle_sdr(raw: &RawFrame<'_>, dst: &mut RgbaImage) -> Result<(), MilkEr
                         dst_px[3] = OPAQUE_ALPHA;
                     }
                 }
-                PixelFormat::Abgr8888 | PixelFormat::Rgba8888 => {
+                PixelFormat::Abgr8888 => {
                     dst_row[..width * 4].copy_from_slice(src_bytes);
+                }
+                PixelFormat::Rgba8888 => {
+                    for (src_px, dst_px) in src_pixels.iter().zip(dst_pixels.iter_mut()) {
+                        dst_px[0] = src_px[3];
+                        dst_px[1] = src_px[2];
+                        dst_px[2] = src_px[1];
+                        dst_px[3] = src_px[0];
+                    }
                 }
                 PixelFormat::Bgra8888 => {
                     for (src_px, dst_px) in src_pixels.iter().zip(dst_pixels.iter_mut()) {
-                        dst_px[0] = src_px[2];
-                        dst_px[1] = src_px[1];
-                        dst_px[2] = src_px[0];
-                        dst_px[3] = src_px[3];
+                        dst_px[0] = src_px[1];
+                        dst_px[1] = src_px[2];
+                        dst_px[2] = src_px[3];
+                        dst_px[3] = src_px[0];
                     }
                 }
 

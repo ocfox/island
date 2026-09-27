@@ -88,5 +88,6 @@ impl Drop for ShmBuffer {
             let _ = munmap(self.ptr.as_ptr() as *mut _, self.size);
         }
         self.buffer.destroy();
+        self._pool.destroy();
     }
 }

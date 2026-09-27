@@ -33,8 +33,8 @@ impl PixelFormat {
     pub const DRM_FORMAT_XRGB8888: u32 = 0x34325258; // 'XR24'
     pub const DRM_FORMAT_ABGR8888: u32 = 0x34324241; // 'AB24'
     pub const DRM_FORMAT_XBGR8888: u32 = 0x34324258; // 'XB24'
-    pub const DRM_FORMAT_RGBA8888: u32 = 0x34314152; // 'RA24'
-    pub const DRM_FORMAT_BGRA8888: u32 = 0x34314142; // 'BA24'
+    pub const DRM_FORMAT_RGBA8888: u32 = 0x34324152; // 'RA24'
+    pub const DRM_FORMAT_BGRA8888: u32 = 0x34324142; // 'BA24'
 
     pub const DRM_FORMAT_ARGB2101010: u32 = 0x30335241; // 'AR30'
     pub const DRM_FORMAT_XRGB2101010: u32 = 0x30335258; // 'XR30'
