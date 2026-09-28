@@ -1,7 +1,8 @@
 {
   lib,
+  sources,
   stdenv,
-  fetchFromGitLab,
+  fetchgit,
   meson,
   ninja,
   pkg-config,
@@ -17,15 +18,9 @@
 # nixpkgs builds grim from the old mirror, so this pins current upstream GitLab instead.
 stdenv.mkDerivation {
   pname = "grim";
-  version = "1.5.0";
+  inherit (sources.grim) version;
 
-  src = fetchFromGitLab {
-    domain = "gitlab.freedesktop.org";
-    owner = "emersion";
-    repo = "grim";
-    rev = "07eb6914ceb2931894670875fabda3c65014d5b8";
-    hash = "sha256-GSqZ3veRdUED1747Wg70oGyObzv9timm/88bVW3tRXI=";
-  };
+  src = fetchgit sources.grim.src;
 
   patches = [
     # Keep the 10 bits per channel that a capture of a 10-bit output provides

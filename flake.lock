@@ -101,8 +101,7 @@
         "flake-parts": "flake-parts",
         "import-tree": "import-tree",
         "kix": "kix",
-        "nixpkgs": "nixpkgs",
-        "zen-browser": "zen-browser"
+        "nixpkgs": "nixpkgs"
       }
     },
     "treefmt-nix": {
@@ -123,26 +122,6 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
-        "type": "github"
-      }
-    },
-    "zen-browser": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1790240349,
-        "narHash": "sha256-uMC3vdi/AdbRLsKCJle4VAIV9e3HEJhe4CZzvA0FXNw=",
-        "owner": "youwen5",
-        "repo": "zen-browser-flake",
-        "rev": "6979f283e596eead5459a6f181dbb735a10c8588",
-        "type": "github"
-      },
-      "original": {
-        "owner": "youwen5",
-        "repo": "zen-browser-flake",
         "type": "github"
       }
     }

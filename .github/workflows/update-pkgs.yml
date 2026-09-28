@@ -1,9 +1,9 @@
-name: Weekly Package Updates
+name: Automated Package Updates
 
 on:
   schedule:
-    # Run every Monday at 03:00 UTC (11:00 CST)
-    - cron: '0 3 * * 1'
+    # Run daily at 03:00 UTC (11:00 CST)
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:
@@ -16,25 +16,52 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v16
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-experimental-features = pipe-operators
 
       - name: Update custom packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          INITIAL_SHA=$(git rev-parse HEAD)
           nix shell nixpkgs#just --command just update
 
+          if [ "$(git rev-parse HEAD)" != "$INITIAL_SHA" ]; then
+            CHANGES=$(git log --pretty=format:"- %s" "$INITIAL_SHA..HEAD")
+            echo "HAS_UPDATES=true" >> "$GITHUB_ENV"
+            {
+              echo "CHANGES<<EOF"
+              echo "$CHANGES"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify updates
+        if: env.HAS_UPDATES == 'true'
+        run: |
+          nix flake check
+
       - name: Create Pull Request
+        if: env.HAS_UPDATES == 'true'
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: auto-update-pkgs
-          title: "chore(pkgs): weekly automated package updates"
+          title: "chore(pkgs): automated package updates"
           body: |
-            Automated weekly update of packages in `pkgs/` using `nix-update`.
-          commit-message: "chore(pkgs): weekly automated package updates"
+            Automated package updates:
+
+            ${{ env.CHANGES }}
+          commit-message: "chore(pkgs): automated package updates"
           delete-branch: true
 
       - name: Notify ntfy
@@ -47,15 +74,16 @@ jobs:
           fi
           if [ "${{ job.status }}" != "success" ]; then
             curl -s "${AUTH_HEADER[@]}" \
-              -H "Title: Weekly Updates Failed" \
+              -H "Title: Package Updates Failed" \
               -H "Priority: high" \
               -H "Tags: x" \
-              -d "island: automated weekly package updates failed" \
+              -d "island: automated package updates failed" \
               https://ntfy.s4r.in/ci || true
           elif [ "${{ steps.cpr.outputs.pull-request-number }}" != "" ]; then
+            CHANGES="${{ env.CHANGES }}"
             curl -s "${AUTH_HEADER[@]}" \
-              -H "Title: Weekly Updates PR Created" \
+              -H "Title: Package Updates PR #${{ steps.cpr.outputs.pull-request-number }} Created" \
               -H "Tags: package" \
-              -d "island: package update PR #${{ steps.cpr.outputs.pull-request-number }} created" \
+              -d "$(printf "island: package update PR created\n\n%s" "$CHANGES")" \
               https://ntfy.s4r.in/ci || true
           fi

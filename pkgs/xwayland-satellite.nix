@@ -1,5 +1,6 @@
 {
   lib,
+  sources,
   fetchFromGitHub,
   installShellFiles,
   libxcb,
@@ -12,21 +13,14 @@
 
 rustPlatform.buildRustPackage {
   pname = "xwayland-satellite";
-  version = "0.8.2";
+  inherit (sources.xwayland-satellite) version cargoHash;
 
-  src = fetchFromGitHub {
-    owner = "Supreeeme";
-    repo = "xwayland-satellite";
-    rev = "8575d0ef55d70f9b4c46b6bffb3accf912217e1e";
-    hash = "sha256-28696iIw8uE0ZUyFTtzhEM8xMh85clCYypMxkvUi+sc=";
-  };
+  src = fetchFromGitHub sources.xwayland-satellite.src;
 
   postPatch = ''
     substituteInPlace resources/xwayland-satellite.service \
       --replace-fail '/usr/local/bin' "$out/bin"
   '';
-
-  cargoHash = "sha256-jbEihJYcOwFeDiMYlOtaS8GlunvSze80iWahDj1qDrs=";
 
   nativeBuildInputs = [
     installShellFiles

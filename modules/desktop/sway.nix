@@ -100,7 +100,6 @@
         bindsym Mod4+l focus right
         bindsym Mod4+minus scratchpad show
         bindsym Mod4+o exec ${lib.getExe pkgs.fuzzel}
-        bindsym Mod4+Shift+o exec qs -c persona ipc call searchapp toggle
         bindsym Mod4+r mode resize
         bindsym Mod4+s layout stacking
         bindsym Mod4+space floating toggle

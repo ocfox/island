@@ -19,7 +19,7 @@ seal *args:
 edit file *args:
     nix run .#kix-edit -- {{ file }} {{ args }}
 
-# Update custom packages in pkgs/ (e.g. just update, just update sing-box)
+# Update custom packages in pkgs/ (e.g. just update, just update zen-browser)
 update *args:
     ./pkgs/update.py {{ args }}
 

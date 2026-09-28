@@ -21,7 +21,12 @@
         ];
       };
       packages = lib.packagesFromDirectoryRecursive {
-        callPackage = lib.callPackageWith pkgs;
+        callPackage = lib.callPackageWith (
+          pkgs
+          // {
+            sources = builtins.fromJSON (builtins.readFile (self + "/pkgs/sources.json"));
+          }
+        );
         directory = self + "/pkgs";
       };
     };

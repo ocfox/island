@@ -1,5 +1,6 @@
 {
   lib,
+  sources,
   rustPlatform,
   fetchFromGitHub,
   pkg-config,
@@ -17,18 +18,11 @@
   wl-clipboard,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage {
   pname = "vertere";
-  version = "0-unstable-2026-07-25";
+  inherit (sources.vertere) version cargoHash;
 
-  src = fetchFromGitHub {
-    owner = "ocfox";
-    repo = "vertere";
-    rev = "2bbbd3c535c79398c7090e3caac86f13e5ad306f";
-    hash = "sha256-TJWsXGEgktU5y2UhnDyBTEwMvbA3n9jI/I6gs4ZWyR4=";
-  };
-
-  cargoHash = "sha256-qkQIT92R1rK9s1yECepfGEk8imy1UtHfs+4OfdFl7jU=";
+  src = fetchFromGitHub sources.vertere.src;
 
   nativeBuildInputs = [
     pkg-config

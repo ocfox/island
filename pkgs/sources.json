@@ -1,0 +1,50 @@
+{
+  "zen-browser": {
+    "type": "github-release-binary",
+    "owner": "zen-browser",
+    "repo": "desktop",
+    "version": "1.22.3b",
+    "asset_pattern": "zen.linux-{arch}.tar.xz",
+    "x86_64-linux": {
+      "url": "https://github.com/zen-browser/desktop/releases/download/1.22.3b/zen.linux-x86_64.tar.xz",
+      "hash": "sha256-Cq7hs/Z/B0rr9/xsL+gkRBvK/UMemZEzZHnBY3BRndA="
+    },
+    "aarch64-linux": {
+      "url": "https://github.com/zen-browser/desktop/releases/download/1.22.3b/zen.linux-aarch64.tar.xz",
+      "hash": "sha256-v/v0GIgdRpY8XsAMsN4F56Bvd7Ku/IcQpQO8+3kIbH0="
+    }
+  },
+  "grim": {
+    "type": "git",
+    "branch": "master",
+    "version": "1.5.0",
+    "src": {
+      "url": "https://gitlab.freedesktop.org/emersion/grim.git",
+      "rev": "155adb11572f0d3d9825935b5802a329c4be1f46",
+      "hash": "sha256-uBNJo3fjDbqGW1jcnF1ob/x8fn0vvuWB3IKcRzY4auc="
+    }
+  },
+  "vertere": {
+    "type": "github",
+    "branch": "master",
+    "version": "0-unstable-2026-07-25",
+    "cargoHash": "sha256-qkQIT92R1rK9s1yECepfGEk8imy1UtHfs+4OfdFl7jU=",
+    "src": {
+      "owner": "ocfox",
+      "repo": "vertere",
+      "rev": "2bbbd3c535c79398c7090e3caac86f13e5ad306f",
+      "hash": "sha256-TJWsXGEgktU5y2UhnDyBTEwMvbA3n9jI/I6gs4ZWyR4="
+    }
+  },
+  "xwayland-satellite": {
+    "type": "github-release",
+    "version": "0.8.3",
+    "cargoHash": "sha256-jbEihJYcOwFeDiMYlOtaS8GlunvSze80iWahDj1qDrs=",
+    "src": {
+      "owner": "Supreeeme",
+      "repo": "xwayland-satellite",
+      "rev": "b83eab900644e4c7c77982ce3d44cb490f0c5e1d",
+      "hash": "sha256-eFEjCCniMCKeWU0PcZNv+tDYe08SLFPjRplyPY8OFt4="
+    }
+  }
+}
