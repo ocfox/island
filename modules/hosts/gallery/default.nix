@@ -17,6 +17,7 @@
           vertere
           sing-box
           zen
+          blender
         ];
         nix.registry.self.flake = self;
         boot.loader.limine.extraEntries = ''
