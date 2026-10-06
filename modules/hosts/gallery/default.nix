@@ -34,6 +34,9 @@
           "sd_mod"
         ];
         boot.kernelModules = [ "kvm-amd" "ntsync" ];
+
+        hardware.opentabletdriver.enable = true;
+        
         hardware.cpu.amd.updateMicrocode = true;
         hardware.keyboard.qmk.enable = true;
         kix.secrets.test = { };
