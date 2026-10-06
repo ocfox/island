@@ -116,7 +116,7 @@
           bg ${bg} fill
           mode 3840x2160
           position 0 0
-          scale 3
+          scale 2
           render_bit_depth 10
           color_profile icc ${icc}
           hdr off
