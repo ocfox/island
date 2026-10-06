@@ -3,6 +3,7 @@
   rustPlatform,
   pkg-config,
   wayland,
+  libjxl,
 }:
 
 rustPlatform.buildRustPackage {
@@ -21,6 +22,7 @@ rustPlatform.buildRustPackage {
 
   buildInputs = [
     wayland
+    libjxl
   ];
 
   postInstall = ''

@@ -1,3 +1,4 @@
+mod jxl;
 mod model;
 mod output;
 mod png;
@@ -5,6 +6,7 @@ mod transform;
 mod wayland;
 
 use argh::FromArgs;
+use jxl::{encode_jxl, map_speed, JxlOptions};
 use model::error::MilkError;
 use model::frame::RawFrame;
 use model::pixel::{Geometry, PixelFormat};
@@ -16,6 +18,12 @@ use wayland::CaptureSession;
 
 const BYTES_PER_MIB: f64 = 1024.0 * 1024.0;
 const MS_PER_SEC: f64 = 1000.0;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ImageFormat {
+    Png,
+    Jxl,
+}
 
 /// High-performance Wayland screenshot utility.
 #[derive(FromArgs, Debug)]
@@ -36,11 +44,27 @@ struct Args {
     #[argh(option, short = 's')]
     _scale: Option<f64>,
 
-    /// zlib compression level (1-9, default: 1 for sub-100ms 4K encoding)
+    /// output image type: "png" or "jxl" (default: auto-detected from target extension, or png)
+    #[argh(option, short = 't')]
+    format: Option<String>,
+
+    /// zlib compression level for PNG (1-9, default: 1 for sub-100ms 4K encoding)
     #[argh(option, short = 'l', default = "1")]
     level: u32,
 
-    /// write raw PNG bytes directly to standard output
+    /// encoding speed for JXL (1-10, 1=Lightning fastest, default: 1)
+    #[argh(option, default = "1")]
+    jxl_speed: u32,
+
+    /// enable lossy compression for JXL (default: lossless)
+    #[argh(switch)]
+    jxl_lossy: bool,
+
+    /// butteraugli distance/quality for lossy JXL (default: 1.0, lower = better)
+    #[argh(option, default = "1.0")]
+    jxl_quality: f32,
+
+    /// write raw image bytes directly to standard output
     #[argh(switch, long = "stdout")]
     stdout: bool,
 
@@ -86,21 +110,51 @@ fn run(args: Args) -> Result<(), MilkError> {
     let rgba = process_raw_frame(&raw_frame, &color_info)?;
     let transform_elapsed = t_transform.elapsed();
 
+    let format = match args.format.as_deref() {
+        Some("jxl") => ImageFormat::Jxl,
+        Some("png") => ImageFormat::Png,
+        Some(unknown) => {
+            return Err(MilkError::Compression(format!("unsupported format: {unknown}")));
+        }
+        None => {
+            if args
+                .target
+                .as_deref()
+                .is_some_and(|t| t.ends_with(".jxl"))
+            {
+                ImageFormat::Jxl
+            } else {
+                ImageFormat::Png
+            }
+        }
+    };
+
     let t_encode = Instant::now();
-    let png_bytes = encode_png(&rgba, args.level)?;
+    let (output_bytes, format_name) = match format {
+        ImageFormat::Png => (encode_png(&rgba, args.level)?, "PNG"),
+        ImageFormat::Jxl => {
+            let jxl_opts = JxlOptions {
+                lossless: !args.jxl_lossy,
+                speed: map_speed(args.jxl_speed),
+                quality: args.jxl_quality,
+            };
+            (encode_jxl(&rgba, &jxl_opts)?, "JXL")
+        }
+    };
     let encode_elapsed = t_encode.elapsed();
 
     let total_elapsed = start.elapsed();
 
     if args.stdout {
-        write_to_stdout(&png_bytes)?;
+        write_to_stdout(&output_bytes)?;
     } else if let Some(ref target) = args.target {
-        save_to_file(target, &png_bytes)?;
+        save_to_file(target, &output_bytes)?;
         eprintln!(
-            "milk: saved {}x{} PNG ({:.2} MB) to '{}' in {:.1}ms (cap: {:.1}ms, xform: {:.1}ms, png: {:.1}ms)",
+            "milk: saved {}x{} {} ({:.2} MB) to '{}' in {:.1}ms (cap: {:.1}ms, xform: {:.1}ms, enc: {:.1}ms)",
             rgba.width,
             rgba.height,
-            png_bytes.len() as f64 / BYTES_PER_MIB,
+            format_name,
+            output_bytes.len() as f64 / BYTES_PER_MIB,
             target,
             total_elapsed.as_secs_f64() * MS_PER_SEC,
             capture_elapsed.as_secs_f64() * MS_PER_SEC,

@@ -15,6 +15,7 @@
           wayland-protocols
           wayland-scanner
           libdeflate
+          libjxl
         ];
         RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
       };

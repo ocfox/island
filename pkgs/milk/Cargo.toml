@@ -11,4 +11,5 @@ rustix = { version = "0.38", features = ["fs", "shm", "mm"] }
 rayon = "1.10"
 mtpng = "0.4.1"
 argh = "0.1"
+jpegxl-rs = { version = "0.16", default-features = false }
 
