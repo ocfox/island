@@ -149,6 +149,7 @@
 
         assign [app_id="zen"] 1
         assign [app_id="org.telegram.desktop"] 3
+        for_window [app_id="org.telegram.desktop" title="^TelegramDesktop$"] floating enable
         for_window [title="Feishu Meetings"] floating enable
 
         exec uwsm app -- fcitx5 -d
