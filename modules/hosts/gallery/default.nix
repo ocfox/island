@@ -18,7 +18,12 @@
           sing-box
           zen
           blender
+          tokend
         ];
+        services.tokend = {
+          enable = true;
+          secretFile = "/home/ib/.config/tokend/secret";
+        };
         nix.registry.self.flake = self;
         boot.loader.limine.extraEntries = ''
           /Windows
