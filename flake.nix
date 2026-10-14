@@ -22,4 +22,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
+
+  nixConfig = {
+    extra-substituters = [
+      "https://oc.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "oc.cachix.org-1:HlK6/yxAithjAXT2xEPSuegWxgQwtlDPM3twEVcAdco="
+    ];
+  };
 }
