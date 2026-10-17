@@ -100,7 +100,7 @@
             {
               publicKey = "6eGDX3aUKFNQTikMlJPshzEeF0n9GkWHUKKvSJk9z1c=";
               allowedIPs = [ "0.0.0.0/0" ];
-              endpoint = "[2406:da14:1200:e700:6a1a:86de:a0e8:f695]:51820";
+              endpoint = "[2406:da14:1200:e700:5300:1ca6:22cb:2e26]:51820";
               persistentKeepalive = 25;
             }
           ];
