@@ -12,7 +12,6 @@
       system.nixos-init.enable = true;
       system.etc.overlay.enable = true;
       system.etc.overlay.mutable = false;
-      boot.initrd.systemd.enable = true;
 
       boot.kernelPackages = pkgs.linuxPackages_latest;
 
