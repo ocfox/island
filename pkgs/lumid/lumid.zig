@@ -137,7 +137,7 @@ const Display = struct {
     pub fn open(connector: []const u8) !Display {
         const bus = findI2cBus(connector) orelse return error.BusNotFound;
         var path_buf: [32]u8 = undefined;
-        const dev_path = try std.fmt.bufPrintZ(&path_buf, "/dev/i2c-{d}", .{bus});
+        const dev_path = try std.mem.printSentinel(&path_buf, "/dev/i2c-{d}", .{bus}, 0);
 
         const fd = try openFile(dev_path, .{ .ACCMODE = .RDWR, .CLOEXEC = true }, 0);
         errdefer close(fd);
@@ -183,7 +183,7 @@ const Display = struct {
 fn findI2cBus(connector: []const u8) ?u32 {
     for (0..MAX_I2C_BUS_PROBE) |bus_idx| {
         var path_buf: [64]u8 = undefined;
-        const p = std.fmt.bufPrintZ(&path_buf, "/sys/class/drm/{s}/i2c-{d}", .{ connector, bus_idx }) catch continue;
+        const p = std.mem.printSentinel(&path_buf, "/sys/class/drm/{s}/i2c-{d}", .{ connector, bus_idx }, 0) catch continue;
         if (openFile(p, .{ .ACCMODE = .RDONLY, .DIRECTORY = true, .CLOEXEC = true }, 0)) |ifd| {
             close(ifd);
             return @intCast(bus_idx);
@@ -208,7 +208,7 @@ comptime {
 
 fn getMmapState(connector: []const u8) *State {
     var shm_path_buf: [64]u8 = undefined;
-    const shm_path = std.fmt.bufPrintZ(&shm_path_buf, "/dev/shm/lumid-{s}.state", .{connector}) catch "/dev/shm/lumid.state";
+    const shm_path = std.mem.printSentinel(&shm_path_buf, "/dev/shm/lumid-{s}.state", .{connector}, 0) catch "/dev/shm/lumid.state";
 
     const fd = openFile(shm_path, .{ .ACCMODE = .RDWR, .CREAT = true, .CLOEXEC = true }, SHM_FILE_PERMS) catch {
         const S = struct {
@@ -242,7 +242,7 @@ const Lock = struct {
 
     pub fn tryAcquire(connector: []const u8) ?Lock {
         var lock_path_buf: [64]u8 = undefined;
-        const lock_path = std.fmt.bufPrintZ(&lock_path_buf, "/dev/shm/lumid-{s}.lock", .{connector}) catch return null;
+        const lock_path = std.mem.printSentinel(&lock_path_buf, "/dev/shm/lumid-{s}.lock", .{connector}, 0) catch return null;
 
         const fd = openFile(lock_path, .{ .ACCMODE = .RDWR, .CREAT = true, .CLOEXEC = true }, SHM_FILE_PERMS) catch return null;
         if (linux.flock(fd, FLOCK_EX | FLOCK_NB) != 0) {

@@ -23,7 +23,7 @@ pub const PacketSimple = extern struct {
     report_id: u8 = 0x00,
     cmd: u8,
     sub: u8,
-    pad: [62]u8 = [_]u8{0} ** 62,
+    pad: [62]u8 = @splat(0),
 };
 
 pub const PacketColourConfig = extern struct {
@@ -38,8 +38,8 @@ pub const PacketColourConfig = extern struct {
     p5: u8 = 0x00,
     p6: u8 = 0x05,
     p7: u8 = 0x06,
-    modes: [15]u8 = [_]u8{0x00} ** 15, // 0x00: Direct mode
-    pad: [39]u8 = [_]u8{0} ** 39,
+    modes: [15]u8 = @splat(0x00), // 0x00: Direct mode
+    pad: [39]u8 = @splat(0),
 };
 
 pub const PacketApply = extern struct {
@@ -49,7 +49,7 @@ pub const PacketApply = extern struct {
     p0: u8 = 0x00,
     p1: u8 = 0x00,
     flag: u8 = 0xe0,
-    pad: [59]u8 = [_]u8{0} ** 59,
+    pad: [59]u8 = @splat(0),
 };
 
 pub const PacketEffect = extern struct {
@@ -67,8 +67,8 @@ pub const PacketEffect = extern struct {
     r: u8,
     g: u8,
     b: u8,
-    zero_pad: [3]u8 = [_]u8{0} ** 3,
-    trail: [48]u8 = [_]u8{0xff} ** 48,
+    zero_pad: [3]u8 = @splat(0),
+    trail: [48]u8 = @splat(0xff),
 };
 
 pub const Packet = extern union {
@@ -193,7 +193,7 @@ fn setStatic(fd: posix.fd_t, r: u8, g: u8, b: u8, brightness: u8) bool {
 
 fn getInterfaceNumber(node_idx: u32) i32 {
     var pbuf: [64]u8 = undefined;
-    const path = std.fmt.bufPrintZ(&pbuf, "/sys/class/hidraw/hidraw{d}/device/../bInterfaceNumber", .{node_idx}) catch return -1;
+    const path = std.mem.printSentinel(&pbuf, "/sys/class/hidraw/hidraw{d}/device/../bInterfaceNumber", .{node_idx}, 0) catch return -1;
     const fd_rc = linux.open(path.ptr, .{ .ACCMODE = .RDONLY }, 0);
     if (linux.errno(fd_rc) != .SUCCESS) return -1;
     const fd: posix.fd_t = @intCast(fd_rc);
@@ -209,7 +209,7 @@ fn getInterfaceNumber(node_idx: u32) i32 {
 fn openDevice() ?posix.fd_t {
     for (0..MAX_HIDRAW) |i| {
         var pbuf: [32]u8 = undefined;
-        const path = std.fmt.bufPrintZ(&pbuf, "/dev/hidraw{d}", .{i}) catch continue;
+        const path = std.mem.printSentinel(&pbuf, "/dev/hidraw{d}", .{i}, 0) catch continue;
         const fd_rc = linux.open(path.ptr, .{ .ACCMODE = .RDWR }, 0);
         if (linux.errno(fd_rc) != .SUCCESS) continue;
         const fd: posix.fd_t = @intCast(fd_rc);
