@@ -127,6 +127,9 @@
           position 0 0
           scale 2
           render_bit_depth 10
+          subpixel rgb
+          max_render_time 4
+          adaptive_sync on
           color_profile icc ${icc}
           hdr off
         }
