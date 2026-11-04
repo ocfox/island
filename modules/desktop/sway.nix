@@ -19,6 +19,15 @@
         name = "279c9.icc";
         hash = "sha256-Igh6nsu4oKqDWTc4/c98DbH645hN5BjyGU9/xIvBbTw=";
       };
+      swaymsg = lib.getExe' pkgs.sway "swaymsg";
+      jq = lib.getExe pkgs.jq;
+      hdrToggle = pkgs.writeShellScript "sway-hdr-toggle" ''
+        if ${swaymsg} -t get_outputs -r | ${jq} -e '.[] | select(.name == "DP-2") | .hdr' >/dev/null 2>&1; then
+          ${swaymsg} output DP-2 hdr off color_profile icc ${icc}
+        else
+          ${swaymsg} output DP-2 color_profile gamma22 hdr on
+        fi
+      '';
       swayConfig = ''
         font pango:monospace 8.000000
         floating_modifier Mod4
@@ -87,7 +96,7 @@
         bindsym Mod4+Up focus up
         bindsym Mod4+a focus parent
         bindsym Mod4+apostrophe exec ${lib.getExe pkgs.swaylock} -i ${bg}
-        bindsym Mod4+Shift+equal exec swaymsg output DP-2 hdr toggle
+        bindsym Mod4+Shift+equal exec ${hdrToggle}
         bindsym Mod4+b splith
         bindsym Mod4+d move scratchpad
         bindsym Mod4+e layout toggle split
