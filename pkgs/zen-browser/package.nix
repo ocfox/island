@@ -13,9 +13,15 @@
   libXtst,
   curl,
   libva,
+  libGL,
+  p11-kit,
   pciutils,
   pipewire,
   writeText,
+  symlinkJoin,
+  makeWrapper,
+  policies ? { },
+  extraPolicies ? { },
   ...
 }:
 let
@@ -24,10 +30,16 @@ let
     sources.zen-browser.${stdenv.hostPlatform.system}
       or (throw "unsupported architecture for zen-browser: ${stdenv.hostPlatform.system}");
 
-  policies = {
+  basePolicies = {
     DisableAppUpdate = true;
+    SecurityDevices = {
+      "System Trust" = "${p11-kit}/lib/pkcs11/p11-kit-trust.so";
+    };
   };
-  policiesJson = writeText "firefox-policies.json" (builtins.toJSON { inherit policies; });
+
+  policiesJson = writeText "firefox-policies.json" (builtins.toJSON {
+    policies = basePolicies // policies // extraPolicies;
+  });
 
   zen-unwrapped = stdenv.mkDerivation (finalAttrs: {
     pname = "zen-browser-unwrapped";
@@ -54,9 +66,11 @@ let
       curl
       libva.out
       pciutils
+      libGL
     ];
 
     appendRunpaths = [
+      "${libGL}/lib"
       "${pipewire}/lib"
     ];
 
@@ -90,7 +104,29 @@ let
       withGSSAPI = true;
     };
   });
+
+  # Spoof Gecko version string so wrapFirefox selects latest ffmpeg (ffmpeg_9 / libavcodec 63)
+  zen-wrapped = wrapFirefox (zen-unwrapped // { version = "9999"; }) {
+    pname = "zen-browser";
+    version = zen-unwrapped.version;
+    extraPolicies = basePolicies // policies // extraPolicies;
+  };
 in
-wrapFirefox zen-unwrapped {
-  pname = "zen-browser";
+symlinkJoin {
+  name = "zen-browser-${version}";
+  paths = [ zen-wrapped ];
+  nativeBuildInputs = [ makeWrapper ];
+  postBuild = ''
+    rm $out/bin/zen
+    makeWrapper ${zen-wrapped}/bin/zen $out/bin/zen \
+      --set TZ "Asia/Tokyo"
+  '';
+
+  passthru = zen-wrapped.passthru // {
+    unwrapped = zen-unwrapped;
+  };
+
+  meta = zen-wrapped.meta // {
+    mainProgram = "zen";
+  };
 }
