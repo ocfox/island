@@ -12,6 +12,7 @@ in
     }:
     let
       shellAliases = {
+        agy = "swaymsg exec 'nix run github:jacopone/antigravity-nix#google-antigravity-no-fhs --override-input nixpkgs nixpkgs'";
         j = "just";
         ls = "eza --icons=auto --hyperlink --color=always --color-scale=all --color-scale-mode=fixed --git --git-repos";
         la = "eza --icons=auto --hyperlink --color=always --color-scale=all --color-scale-mode=fixed --git --git-repos -la";
