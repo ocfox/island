@@ -19,10 +19,15 @@
           zen
           blender
           tokend
+          lived
         ];
         services.tokend = {
           enable = true;
           secretFile = "/home/ib/.config/tokend/secret";
+        };
+        services.lived = {
+          enable = true;
+          secretFile = "/home/ib/.config/lived/secret";
         };
         nix.registry.self.flake = self;
         boot.loader.limine.extraEntries = ''
