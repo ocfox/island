@@ -153,8 +153,9 @@
 
         seat "*" xcursor_theme $my_cursor $my_cursor_size
         exec_always {
-            gsettings set org.gnome.desktop.interface cursor-theme $my_cursor
-            gsettings set org.gnome.desktop.interface cursor-size $my_cursor_size
+            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface cursor-theme $my_cursor
+            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface cursor-size $my_cursor_size
+            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface icon-theme "Numix-Circle"
         }
 
         exec "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE; systemctl --user start sway-session.target" 

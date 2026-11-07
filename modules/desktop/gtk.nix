@@ -40,8 +40,11 @@
     {
       my.packages = [
         pkgs.gnome-themes-extra
+        pkgs.adwaita-icon-theme
+        pkgs.numix-icon-theme
         pkgs.numix-icon-theme-circle
         pkgs.apple-cursor
+        pkgs.glib
       ];
 
       my.config."gtk-3.0/settings.ini" = pkgs.writeText "gtk3-settings.ini" gtk3Settings;
