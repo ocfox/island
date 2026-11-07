@@ -31,5 +31,6 @@ type PresencePayload struct {
 }
 
 type IncomingMessage struct {
-	Kind string `json:"kind"`
+	Kind   string `json:"kind"`
+	Active bool   `json:"active"`
 }

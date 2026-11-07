@@ -2,7 +2,6 @@
   lib,
   buildGoModule,
   makeWrapper,
-  playerctl,
   libnotify,
 }:
 
@@ -12,7 +11,7 @@ buildGoModule {
 
   src = ./.;
 
-  vendorHash = null;
+  vendorHash = "sha256-WUTGAYigUjuZLHO1YpVhFSWpvULDZfGMfOXZQqVYAfs=";
 
   env.CGO_ENABLED = 0;
 
@@ -22,7 +21,6 @@ buildGoModule {
     wrapProgram $out/bin/lived \
       --prefix PATH : ${
         lib.makeBinPath [
-          playerctl
           libnotify
         ]
       }

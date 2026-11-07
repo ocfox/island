@@ -123,7 +123,7 @@ func main() {
 				select {
 				case waylandIdle = <-idleCh:
 				case rawSp := <-spotifyCh:
-					currentSpotify = stabilizeSpotify(currentSpotify, rawSp)
+					currentSpotify = rawSp
 				case <-swayCh:
 				default:
 					break drainLoop
@@ -135,6 +135,7 @@ func main() {
 
 		log.Printf("[lived] connected to %s", *endpointFlag)
 		readErrCh := make(chan error, 1)
+		demandCh := make(chan bool, 4)
 
 		go func(c *wsClient) {
 			for {
@@ -147,10 +148,18 @@ func main() {
 					continue
 				}
 				var msg IncomingMessage
-				if json.Unmarshal(raw, &msg) == nil && msg.Kind == "poke" {
-					snap := buildSnapshot(waylandIdle, currentSpotify)
-					if snap.Online && snap.Desktop != nil && snap.Desktop.ScreenOn {
-						go notifyPoke()
+				if json.Unmarshal(raw, &msg) == nil {
+					switch msg.Kind {
+					case "demand":
+						select {
+						case demandCh <- msg.Active:
+						default:
+						}
+					case "poke":
+						snap := buildSnapshot(waylandIdle, currentSpotify)
+						if snap.Online && snap.Desktop != nil && snap.Desktop.ScreenOn {
+							go notifyPoke()
+						}
 					}
 				}
 			}
@@ -159,8 +168,12 @@ func main() {
 		var lastDesktop DesktopState
 		var lastStatus string
 		var lastOnline bool
+		visitorsActive := false
 
 		sendSnap := func(force bool) error {
+			if !visitorsActive {
+				return nil
+			}
 			snap := buildSnapshot(waylandIdle, currentSpotify)
 			if !force && snap.Desktop != nil &&
 				*snap.Desktop == lastDesktop &&
@@ -181,12 +194,6 @@ func main() {
 			return ws.WriteText(b)
 		}
 
-		if err := sendSnap(true); err != nil {
-			ws.Close()
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
 		pingTicker := time.NewTicker(25 * time.Second)
 
 		connAlive := true
@@ -195,12 +202,18 @@ func main() {
 			case err := <-readErrCh:
 				log.Printf("[lived] ws closed: %v", err)
 				connAlive = false
+			case active := <-demandCh:
+				visitorsActive = active
+				if visitorsActive {
+					if err := sendSnap(true); err != nil {
+						connAlive = false
+					}
+				}
 			case waylandIdle = <-idleCh:
 				if err := sendSnap(false); err != nil {
 					connAlive = false
 				}
-			case rawSp := <-spotifyCh:
-				nextSp := stabilizeSpotify(currentSpotify, rawSp)
+			case nextSp := <-spotifyCh:
 				if !spotifyEqual(currentSpotify, nextSp) {
 					currentSpotify = nextSp
 					if err := sendSnap(true); err != nil {
@@ -208,6 +221,9 @@ func main() {
 					}
 				}
 			case <-swayCh:
+				if !visitorsActive {
+					continue
+				}
 				time.Sleep(60 * time.Millisecond)
 			drainSway:
 				for {
