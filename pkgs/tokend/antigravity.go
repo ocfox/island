@@ -69,14 +69,25 @@ func parseProtoFields(buf []byte) (varints map[int]uint64, bytesFields map[int][
 }
 
 func scanAntigravity(homeDir string) ([]RawUsageEvent, error) {
-	convDir := filepath.Join(homeDir, ".gemini", "antigravity-cli", "conversations")
-	if _, err := os.Stat(convDir); err != nil {
-		return nil, nil
+	convDirs := []string{
+		filepath.Join(homeDir, ".gemini", "antigravity-cli", "conversations"),
+		filepath.Join(homeDir, ".gemini", "antigravity", "conversations"),
 	}
 
-	files, err := filepath.Glob(filepath.Join(convDir, "*.db"))
-	if err != nil {
-		return nil, err
+	var files []string
+	for _, convDir := range convDirs {
+		if _, err := os.Stat(convDir); err != nil {
+			continue
+		}
+		matches, err := filepath.Glob(filepath.Join(convDir, "*.db"))
+		if err != nil {
+			continue
+		}
+		files = append(files, matches...)
+	}
+
+	if len(files) == 0 {
+		return nil, nil
 	}
 
 	var events []RawUsageEvent
@@ -87,6 +98,9 @@ func scanAntigravity(homeDir string) ([]RawUsageEvent, error) {
 			continue
 		}
 		modTime := fi.ModTime()
+		if walFi, err := os.Stat(file + "-wal"); err == nil && walFi.ModTime().After(modTime) {
+			modTime = walFi.ModTime()
+		}
 
 		db, err := sql.Open("sqlite", "file:"+file+"?mode=ro")
 		if err != nil {

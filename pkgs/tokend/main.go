@@ -63,7 +63,7 @@ func runCollect(homeDir string) (Payload, error) {
 		allEvents = append(allEvents, codexEvents...)
 	}
 
-	// 4. Antigravity CLI
+	// 4. Antigravity (CLI & GUI)
 	antigravityEvents, err := scanAntigravity(homeDir)
 	if err != nil {
 		log.Printf("[antigravity] scan error: %v", err)
