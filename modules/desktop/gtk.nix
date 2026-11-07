@@ -7,12 +7,23 @@
       ...
     }:
     let
-      settingsIniContent = lib.generators.toINI { } {
+      gtk3Settings = lib.generators.toINI { } {
         Settings = {
           gtk-theme-name = "Adwaita-dark";
           gtk-icon-theme-name = "Numix-Circle";
           gtk-cursor-theme-name = "macOS";
           gtk-application-prefer-dark-theme = 1;
+          gtk-cursor-theme-size = 24;
+          gtk-xft-hinting = 1;
+          gtk-xft-hintstyle = "hintslight";
+        };
+      };
+
+      gtk4Settings = lib.generators.toINI { } {
+        Settings = {
+          gtk-theme-name = "Adwaita-dark";
+          gtk-icon-theme-name = "Numix-Circle";
+          gtk-cursor-theme-name = "macOS";
           gtk-cursor-theme-size = 24;
           gtk-xft-hinting = 1;
           gtk-xft-hintstyle = "hintslight";
@@ -33,8 +44,8 @@
         pkgs.apple-cursor
       ];
 
-      my.config."gtk-3.0/settings.ini" = pkgs.writeText "gtk3-settings.ini" settingsIniContent;
-      my.config."gtk-4.0/settings.ini" = pkgs.writeText "gtk4-settings.ini" settingsIniContent;
+      my.config."gtk-3.0/settings.ini" = pkgs.writeText "gtk3-settings.ini" gtk3Settings;
+      my.config."gtk-4.0/settings.ini" = pkgs.writeText "gtk4-settings.ini" gtk4Settings;
       my.config."gtk-2.0/gtkrc" = pkgs.writeText "gtkrc-2.0" gtk2Content;
     };
 }
