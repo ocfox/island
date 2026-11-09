@@ -9,6 +9,7 @@
         enable = true;
         capSysNice = false;
       };
+      hardware.xpadneo.enable = true;
       services.seatd.enable = true;
       environment.systemPackages = with pkgs; [
         gamescope-wsi
