@@ -19,14 +19,19 @@
 
       color_toggle = pkgs.writeShellScriptBin "waybar-color-toggle" ''
         GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
+        PKILL=${lib.getExe' pkgs.procps "pkill"}
+        SYSTEMCTL=${pkgs.systemd}/bin/systemctl
         cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
         if [ "$cur" = "prefer-dark" ]; then
-          ${lib.getExe' pkgs.procps "pkill"} -USR2 -f "foot"
+          $PKILL -USR2 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-light"
+          $GSETTINGS set org.gnome.desktop.interface icon-theme "Papirus-Light"
         else
-          ${lib.getExe' pkgs.procps "pkill"} -USR1 -f "foot"
+          $PKILL -USR1 -f "foot"
           $GSETTINGS set org.gnome.desktop.interface color-scheme "prefer-dark"
+          $GSETTINGS set org.gnome.desktop.interface icon-theme "Papirus-Dark"
         fi
+        $SYSTEMCTL --user kill -s USR2 waybar
       '';
 
       waybarSettings = [

@@ -28,6 +28,17 @@
           ${swaymsg} output DP-2 color_profile gamma22 hdr on
         fi
       '';
+      syncTheme = pkgs.writeShellScript "sway-sync-theme" ''
+        GSETTINGS=${lib.getExe' pkgs.glib "gsettings"}
+        $GSETTINGS set org.gnome.desktop.interface cursor-theme macOS
+        $GSETTINGS set org.gnome.desktop.interface cursor-size 24
+        cur=$($GSETTINGS get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+        if [ "$cur" = "prefer-light" ]; then
+          $GSETTINGS set org.gnome.desktop.interface icon-theme "Papirus-Light"
+        else
+          $GSETTINGS set org.gnome.desktop.interface icon-theme "Papirus-Dark"
+        fi
+      '';
       swayConfig = ''
         font pango:monospace 8.000000
         floating_modifier Mod4
@@ -152,11 +163,7 @@
         set $my_cursor_size 24
 
         seat "*" xcursor_theme $my_cursor $my_cursor_size
-        exec_always {
-            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface cursor-theme $my_cursor
-            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface cursor-size $my_cursor_size
-            ${lib.getExe' pkgs.glib "gsettings"} set org.gnome.desktop.interface icon-theme "Numix-Circle"
-        }
+        exec_always ${syncTheme}
 
         exec "${pkgs.dbus}/bin/dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE; systemctl --user start sway-session.target" 
 

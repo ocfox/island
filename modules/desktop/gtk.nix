@@ -10,7 +10,7 @@
       gtk3Settings = lib.generators.toINI { } {
         Settings = {
           gtk-theme-name = "Adwaita-dark";
-          gtk-icon-theme-name = "Numix-Circle";
+          gtk-icon-theme-name = "Papirus-Dark";
           gtk-cursor-theme-name = "macOS";
           gtk-application-prefer-dark-theme = 1;
           gtk-cursor-theme-size = 24;
@@ -22,7 +22,7 @@
       gtk4Settings = lib.generators.toINI { } {
         Settings = {
           gtk-theme-name = "Adwaita-dark";
-          gtk-icon-theme-name = "Numix-Circle";
+          gtk-icon-theme-name = "Papirus-Dark";
           gtk-cursor-theme-name = "macOS";
           gtk-cursor-theme-size = 24;
           gtk-xft-hinting = 1;
@@ -32,7 +32,7 @@
 
       gtk2Content = ''
         gtk-theme-name = "Adwaita-dark"
-        gtk-icon-theme-name = "Numix-Circle"
+        gtk-icon-theme-name = "Papirus-Dark"
         gtk-cursor-theme-name = "macOS"
         gtk-cursor-theme-size = 24
       '';
@@ -41,8 +41,7 @@
       my.packages = [
         pkgs.gnome-themes-extra
         pkgs.adwaita-icon-theme
-        pkgs.numix-icon-theme
-        pkgs.numix-icon-theme-circle
+        pkgs.papirus-icon-theme
         pkgs.apple-cursor
         pkgs.glib
       ];
