@@ -1,6 +1,6 @@
 {
   flake.modules.nixos.steam =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       programs.steam = {
         enable = true;
@@ -13,6 +13,9 @@
       environment.systemPackages = with pkgs; [
         gamescope-wsi
         mangohud
+      ];
+      systemd.tmpfiles.rules = [
+        "r /home/${config.my.name}/.local/share/Steam/public/steam_tray_mono.png"
       ];
     };
 }

@@ -42,6 +42,7 @@
         pkgs.gnome-themes-extra
         pkgs.adwaita-icon-theme
         pkgs.papirus-icon-theme
+        pkgs.local.papirus-tray-icons
         pkgs.apple-cursor
         pkgs.glib
       ];
