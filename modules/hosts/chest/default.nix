@@ -9,7 +9,7 @@
       {
         imports = with self.modules.nixos; [
           vps
-          xray
+          sing-box-server
         ];
 
         users.users.parfait = {
@@ -22,9 +22,9 @@
 
         security.sudo.wheelNeedsPassword = false;
 
-        services.xray = {
+        services.sing-box-server = {
           enable = true;
-          secretName = "chest-xray";
+          secretName = "chest-sing-box";
         };
 
         boot.growPartition = true;

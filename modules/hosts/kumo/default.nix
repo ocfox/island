@@ -16,6 +16,7 @@
           monitoring
           ntfy
           sub-relay
+          xmpp
         ];
 
         boot.loader.limine = {
@@ -54,6 +55,7 @@
               tcp dport 22 accept
               tcp dport { 80, 443 } accept
               udp dport 443 accept
+              tcp dport { 5222, 5269 } accept
 
               # allow aqua agent (gallery) to push metrics to VictoriaMetrics
               ip saddr 100.64.0.1 tcp dport 9090 accept
@@ -120,6 +122,7 @@
         services.ntfy.enable = true;
         services.vaultwarden.enable = true;
         services.memos.enable = true;
+        services.xmpp.enable = true;
         services.mastodon = {
           enable = true;
           localDomain = "ocfox.me";
@@ -141,6 +144,7 @@
         # Crash alerts to ntfy for critical system services
         systemd.services = {
           caddy.onFailure = [ "notify-failure@%p.service" ];
+          prosody.onFailure = [ "notify-failure@%p.service" ];
           postgresql.onFailure = [ "notify-failure@%p.service" ];
           vaultwarden.onFailure = [ "notify-failure@%p.service" ];
           memos.onFailure = [ "notify-failure@%p.service" ];
