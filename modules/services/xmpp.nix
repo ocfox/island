@@ -41,12 +41,15 @@ Hi, here is sarin's xmpp node.
       };
 
       config = lib.mkIf cfg.enable {
-        # ACME certificate covering only the necessary domains: xm.s4r.in and s4r.in
+        # ACME certificate covering s4r.in, xm.s4r.in, and wildcard *.xm.s4r.in
         security.acme.certs.${edgeDomain} = {
           dnsProvider = "cloudflare";
           environmentFile = config.kix.secrets.cf-dns.path;
-          dnsPropagationCheck = false; # Cloudflare updates instantly; bypass local systemd-resolved NXDOMAIN caching
-          extraDomainNames = [ domain ];
+          dnsResolver = "1.1.1.1:53";
+          extraDomainNames = [
+            domain
+            "*.${edgeDomain}"
+          ];
           group = "caddy";
           reloadServices = [ "prosody.service" ];
         };
@@ -92,7 +95,6 @@ Hi, here is sarin's xmpp node.
             mam = true;
             smacks = true;
             admin_adhoc = true;
-            motd = true;
             bosh = true;
             websocket = true;
           };
@@ -101,13 +103,24 @@ Hi, here is sarin's xmpp node.
             "http_altconnect" # RFC 7395 / XEP-0156 discovery via /.well-known/host-meta
           ];
 
-          # Easter Eggs & Server Branding
+          # Server Branding
           extraConfig = ''
             os_version_command = "echo 'NixOS (kumo in the clouds ☁️)'"
-
-            motd_text = [[✦ Welcome back to island, ib.
-All systems nominal. Soft breeze drifting across kumo. ☁️]]
           '';
+
+          # Global certificate for all hosts and components
+          ssl = {
+            cert = "/var/lib/acme/${edgeDomain}/fullchain.pem";
+            key = "/var/lib/acme/${edgeDomain}/key.pem";
+          };
+
+          # Multi-User Chat (MUC / Group chats)
+          muc = [
+            {
+              domain = "conference.${edgeDomain}";
+              name = "s4r.in Chatrooms";
+            }
+          ];
 
           httpFileShare = {
             domain = "upload.${edgeDomain}";
@@ -123,20 +136,6 @@ All systems nominal. Soft breeze drifting across kumo. ☁️]]
             ${domain} = {
               domain = domain;
               enabled = true;
-              ssl = {
-                key = "/var/lib/acme/${edgeDomain}/key.pem";
-                cert = "/var/lib/acme/${edgeDomain}/fullchain.pem";
-              };
-            };
-
-            # Edge host: user@xm.s4r.in
-            ${edgeDomain} = {
-              domain = edgeDomain;
-              enabled = true;
-              ssl = {
-                key = "/var/lib/acme/${edgeDomain}/key.pem";
-                cert = "/var/lib/acme/${edgeDomain}/fullchain.pem";
-              };
             };
           };
         };
@@ -176,6 +175,13 @@ All systems nominal. Soft breeze drifting across kumo. ☁️]]
               header Content-Type "text/plain; charset=utf-8"
               respond `${asciiCat}`
             }
+          '';
+        };
+
+        services.caddy.virtualHosts."upload.${edgeDomain}" = {
+          useACMEHost = edgeDomain;
+          extraConfig = ''
+            reverse_proxy 127.0.0.1:5280
           '';
         };
       };

@@ -23,5 +23,9 @@
           qt6Packages.fcitx5-configtool
         ];
       };
+
+      environment.sessionVariables = {
+        GTK_IM_MODULE = "fcitx";
+      };
     };
 }

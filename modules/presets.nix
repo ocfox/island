@@ -50,6 +50,7 @@
         gh
         nautilus
         zed-editor
+        dino
       ];
 
       imports = with config.flake.modules.nixos; [
