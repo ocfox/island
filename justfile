@@ -34,6 +34,7 @@ _rebuild action host:
     fi
 
     declare -A ips=(
+        ["chest"]="57.180.98.243"
         ["light"]="100.64.0.2"
         ["kumo"]="100.64.0.3"
     )

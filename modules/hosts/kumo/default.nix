@@ -89,7 +89,7 @@
           routes = [ { Gateway = "2401:b60:e0fd:11::1"; } ];
         };
 
-        # The DC gives no IPv4 at all, so it comes from light over WireGuard:
+        # The DC gives no IPv4 at all, so it comes from chest over WireGuard:
         # the tunnel itself rides IPv6, and 0.0.0.0/0 inside it is the only
         # IPv4 route this host has.
         kix.secrets.kumo-wg = { };
@@ -98,9 +98,9 @@
           privateKeyFile = config.kix.secrets.kumo-wg.path;
           peers = [
             {
-              publicKey = "6eGDX3aUKFNQTikMlJPshzEeF0n9GkWHUKKvSJk9z1c=";
+              publicKey = "OTfYejJq4WD3pqM9zbvIWMn6JYo1F5V9z5U1UvQmFkw=";
               allowedIPs = [ "0.0.0.0/0" ];
-              endpoint = "[2406:da14:1200:e700:5300:1ca6:22cb:2e26]:51820";
+              endpoint = "[2406:da14:1344:7e00:3e2a:e541:5303:12e1]:51820";
               persistentKeepalive = 25;
             }
           ];
