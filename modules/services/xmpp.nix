@@ -125,7 +125,7 @@ Hi, here is sarin's xmpp node.
           httpFileShare = {
             domain = "upload.${edgeDomain}";
             http_host = edgeDomain;
-            http_external_url = "https://${edgeDomain}/upload/";
+            http_external_url = "https://${edgeDomain}/";
             size_limit = 50 * 1024 * 1024; # 50 MB per file
             expires_after = "30 days";
             daily_quota = 500 * 1024 * 1024; # 500 MB per day
@@ -163,7 +163,7 @@ Hi, here is sarin's xmpp node.
               reverse_proxy 127.0.0.1:5280
             }
 
-            handle /upload* {
+            handle /file_share* {
               reverse_proxy 127.0.0.1:5280
             }
 
@@ -175,13 +175,6 @@ Hi, here is sarin's xmpp node.
               header Content-Type "text/plain; charset=utf-8"
               respond `${asciiCat}`
             }
-          '';
-        };
-
-        services.caddy.virtualHosts."upload.${edgeDomain}" = {
-          useACMEHost = edgeDomain;
-          extraConfig = ''
-            reverse_proxy 127.0.0.1:5280
           '';
         };
       };
