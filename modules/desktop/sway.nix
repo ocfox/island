@@ -104,6 +104,7 @@
         bindsym Mod4+Shift+r exec ${lib.getExe pkgs.local.recorder-toggle}
         bindsym Mod4+Shift+s exec ${lib.getExe pkgs.local.grimshot} --notify copy area
         bindsym Mod4+Shift+u exec ${lib.getExe' pkgs.wireplumber "wpctl"} set-volume @DEFAULT_AUDIO_SINK@ 5%+
+        bindsym Mod4+Shift+w exec ${lib.getExe pkgs.local.grimshot} --notify copy active
         bindsym Mod4+Up focus up
         bindsym Mod4+a focus parent
         bindsym Mod4+apostrophe exec ${lib.getExe pkgs.swaylock} -i ${bg}
@@ -120,6 +121,7 @@
         bindsym Mod4+l focus right
         bindsym Mod4+minus scratchpad show
         bindsym Mod4+o exec ${lib.getExe pkgs.fuzzel}
+        bindsym Mod4+p sticky toggle
         bindsym Mod4+r mode resize
         bindsym Mod4+s layout stacking
         bindsym Mod4+space floating toggle
