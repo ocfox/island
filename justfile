@@ -1,7 +1,7 @@
 default:
     @just --list
 
-# Switch system configuration (e.g. just switch, just switch light, just switch kumo)
+# Switch system configuration (e.g. just switch, just switch wren, just switch kumo)
 switch host="": (_rebuild "switch" host)
 
 # Test system configuration without modifying bootloader
@@ -34,7 +34,6 @@ _rebuild action host:
     fi
 
     declare -A ips=(
-        ["light"]="100.64.0.2"
         ["kumo"]="100.64.0.3"
     )
 
