@@ -34,6 +34,7 @@
           wantedBy = [ "multi-user.target" ];
           serviceConfig = {
             ExecStart = "${lib.getExe pkgs.sing-box} run -c ${config.kix.secrets.${cfg.secretName}.path}";
+            StateDirectory = "sing-box-server";
             Restart = "always";
             RestartSec = "3s";
             LimitNOFILE = 1048576;

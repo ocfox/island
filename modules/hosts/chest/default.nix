@@ -73,9 +73,15 @@
 
         # IPv4 exit for the IPv6-only kumo: WireGuard over IPv6, masqueraded
         # onto the Lightsail address.
+        boot.kernelModules = [
+          "tcp_bbr"
+          "sch_fq"
+        ];
         boot.kernel.sysctl = {
           "net.ipv4.conf.all.forwarding" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
+          "net.core.default_qdisc" = "fq";
+          "net.ipv4.tcp_congestion_control" = "bbr";
         };
 
         networking.nftables.tables = {
@@ -101,6 +107,7 @@
 
                 tcp dport 22 accept
                 tcp dport 443 accept
+                udp dport 443 accept
                 tcp dport 8388 accept
                 udp dport 8388 accept
                 udp dport 51820 accept
