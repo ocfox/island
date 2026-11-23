@@ -25,7 +25,7 @@ jobs:
 
       - name: Build system toplevels
         run: |
-          nix build .#nixosConfigurations.{gallery,kumo,light}.config.system.build.toplevel --no-link
+          nix build .#nixosConfigurations.{gallery,kumo}.config.system.build.toplevel --no-link
 
       - name: Notify ntfy
         if: always()
