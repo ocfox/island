@@ -27,13 +27,12 @@
   "vertere": {
     "type": "github",
     "branch": "master",
-    "version": "0-unstable-2026-07-25",
-    "cargoHash": "sha256-qkQIT92R1rK9s1yECepfGEk8imy1UtHfs+4OfdFl7jU=",
+    "version": "0-unstable-2026-11-23",
     "src": {
       "owner": "ocfox",
       "repo": "vertere",
-      "rev": "2bbbd3c535c79398c7090e3caac86f13e5ad306f",
-      "hash": "sha256-TJWsXGEgktU5y2UhnDyBTEwMvbA3n9jI/I6gs4ZWyR4="
+      "rev": "e6da7aa8e6e3afb4eccd1b91db2b46ca23a1e1ff",
+      "hash": "sha256-dMJT+mLnr4EvghsNqJSplJxBLPtne95B4WKTjaAo9Ws="
     }
   },
   "xwayland-satellite": {

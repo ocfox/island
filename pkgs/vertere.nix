@@ -1,30 +1,34 @@
 {
   lib,
   sources,
-  rustPlatform,
+  stdenv,
   fetchFromGitHub,
+  meson,
+  ninja,
   pkg-config,
   wrapGAppsHook4,
   gtk4,
   gtk4-layer-shell,
+  libsoup_3,
+  json-glib,
+  sqlite,
   glib,
-  cairo,
-  pango,
   gdk-pixbuf,
-  graphene,
   wayland,
   grim,
   slurp,
   wl-clipboard,
 }:
 
-rustPlatform.buildRustPackage {
+stdenv.mkDerivation {
   pname = "vertere";
-  inherit (sources.vertere) version cargoHash;
+  inherit (sources.vertere) version;
 
   src = fetchFromGitHub sources.vertere.src;
 
   nativeBuildInputs = [
+    meson
+    ninja
     pkg-config
     wrapGAppsHook4
   ];
@@ -32,18 +36,16 @@ rustPlatform.buildRustPackage {
   buildInputs = [
     gtk4
     gtk4-layer-shell
+    libsoup_3
+    json-glib
+    sqlite
     glib
-    cairo
-    pango
     gdk-pixbuf
-    graphene
     wayland
   ];
 
-  postInstall = ''
-    mkdir -p $out/share
-    cp -r data/applications data/icons -t $out/share/
-  '';
+  mesonBuildType = "release";
+  doCheck = true;
 
   preFixup = ''
     gappsWrapperArgs+=(

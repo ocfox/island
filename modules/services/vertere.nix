@@ -48,12 +48,6 @@
             RestartSec = 2;
           };
         };
-
-        kix.secrets.vertere = {
-          mode = "400";
-          owner = config.my.name;
-        };
-        services.vertere.environmentFile = lib.mkDefault config.kix.secrets.vertere.path;
       };
     };
 }
