@@ -16,10 +16,6 @@
       boot.kernelPackages = pkgs.linuxPackages_latest;
 
       zramSwap.enable = true;
-      services.scx = {
-        enable = true;
-        scheduler = "scx_lavd";
-      };
 
       environment.etc = {
         "machine-id".text = builtins.hashString "md5" (config.networking.hostName) + "\n";

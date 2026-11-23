@@ -45,6 +45,10 @@
     { pkgs, ... }:
     {
       services.gvfs.enable = true;
+      services.scx-loader = {
+        enable = true;
+        config.default_sched = "scx_lavd";
+      };
 
       my.packages = with pkgs; [
         gh
