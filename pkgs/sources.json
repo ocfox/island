@@ -31,8 +31,8 @@
     "src": {
       "owner": "ocfox",
       "repo": "vertere",
-      "rev": "e6da7aa8e6e3afb4eccd1b91db2b46ca23a1e1ff",
-      "hash": "sha256-dMJT+mLnr4EvghsNqJSplJxBLPtne95B4WKTjaAo9Ws="
+      "rev": "42cf94ee8b58f46b5bf5002a6ef2f70c44dba9ce",
+      "hash": "sha256-884uR+ruoKyfmCHfnmKCEgBCacY4N0vK9GuSbxCQSO8="
     }
   },
   "xwayland-satellite": {

@@ -10,6 +10,7 @@
   gtk4,
   gtk4-layer-shell,
   libsoup_3,
+  glib-networking,
   json-glib,
   sqlite,
   glib,
@@ -37,6 +38,7 @@ stdenv.mkDerivation {
     gtk4
     gtk4-layer-shell
     libsoup_3
+    glib-networking
     json-glib
     sqlite
     glib
