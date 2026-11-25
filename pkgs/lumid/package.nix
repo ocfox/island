@@ -12,7 +12,7 @@ stdenv.mkDerivation {
   buildPhase = ''
     runHook preBuild
     export XDG_CACHE_HOME=$TMPDIR/zig-cache
-    zig build-exe lumid.zig -O ReleaseFast -fstrip -femit-bin=lumid
+    zig build-exe lumid.zig -O ReleaseFast -mcpu=baseline -fstrip -femit-bin=lumid
     runHook postBuild
   '';
 
