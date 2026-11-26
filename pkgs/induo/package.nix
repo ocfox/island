@@ -109,6 +109,17 @@ let
     done
     mdev -s 2>/dev/null || true
 
+    t=0
+    while [ "$t" -lt 15 ]; do
+      found=0
+      for d in /sys/class/net/*; do
+        [ "$(basename "$d")" != "lo" ] && [ -d "$d" ] && found=1 && break
+      done
+      [ "$found" = 1 ] && break
+      sleep 1
+      t=$((t + 1))
+    done
+
     ip link set lo up
 
     for d in /sys/class/net/*; do
@@ -116,7 +127,9 @@ let
       if [ "$name" != "lo" ] && [ -d "$d" ]; then
         echo "induo: bringing up $name"
         ip link set "$name" up 2>/dev/null || true
-        udhcpc -i "$name" -b -s /etc/udhcpc.script 2>/dev/null || true
+        if [ ! -f /induo/net.sh ]; then
+          udhcpc -i "$name" -t 2 -T 1 -b -s /etc/udhcpc.script 2>/dev/null || true
+        fi
       fi
     done
 
@@ -138,6 +151,16 @@ let
     echo "induo: starting dropbear on port 22 with 8MB receive window"
     dropbear -E -s -g -W 8388608 -r /etc/dropbear/dropbear_ed25519_host_key -r /etc/dropbear/dropbear_rsa_host_key -p 22 &
     echo "=== INDUO RAM STAGE READY FOR SSH ==="
+
+    (
+      sleep 15
+      echo "=== INDUO RAM STAGE STATUS ==="
+      ip addr
+      ip -6 addr
+      ip route
+      ip -6 route
+      ps | grep dropbear || true
+    ) >/dev/tty0 2>&1 &
 
     TIMEOUT=180
     for arg in $(cat /proc/cmdline); do
@@ -239,11 +262,11 @@ let
     insmod btrfs
     search --no-floppy --file --set=root /boot/induo/kernel
     if [ -f ($root)/boot/induo/kernel ]; then
-      linux ($root)/boot/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
+      linux ($root)/boot/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0 random.trust_cpu=on
       initrd ($root)/boot/induo/initrd
     else
       search --no-floppy --file --set=root /induo/kernel
-      linux ($root)/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0
+      linux ($root)/induo/kernel console=tty0 console=ttyS0,115200 panic=10 net.ifnames=0 random.trust_cpu=on
       initrd ($root)/induo/initrd
     fi
     boot

@@ -186,7 +186,7 @@ class Target:
     def is_stage(self, verbose: bool = False) -> int:
         p = self.port or 22
         try:
-            with socket.create_connection((self.host, p), timeout=1.5):
+            with socket.create_connection((self.host, p), timeout=3.0):
                 pass
         except OSError as e:
             if verbose:
@@ -198,13 +198,13 @@ class Target:
                 [
                     *test_target.argv()[:-1],
                     "-o",
-                    "ConnectTimeout=2",
+                    "ConnectTimeout=5",
                     test_target.argv()[-1],
                     "test -f /run/induo-stage",
                 ],
                 capture_output=True,
                 text=True,
-                timeout=3,
+                timeout=7,
                 check=False,
             )
             if proc.returncode == 0:
@@ -571,13 +571,25 @@ def make_stage_initrd(keys: list[str], p: dict) -> bytes:
         if s := p.get(f"v{v}"):
             ip_cmd = "ip -6" if v == 6 else "ip"
             net_cmds += [
-                f'for d in /sys/class/net/*; do [ "$(cat "$d/address" 2>/dev/null)" = "{s["mac"]}" ] && dev=$(basename "$d"); done',
+                "dev=",
+                "t=0",
+                'while [ "$t" -lt 15 ]; do',
+                f'  for d in /sys/class/net/*; do [ "$(cat "$d/address" 2>/dev/null)" = "{s["mac"]}" ] && dev=$(basename "$d") && break; done',
+                '  [ -n "$dev" ] && break',
+                "  sleep 1",
+                "  t=$((t + 1))",
+                "done",
                 "dev=${dev:-eth0}",
-                'ip link set "$dev" up 2>/dev/null || true',
-                'udhcpc -i "$dev" -b -s /etc/udhcpc.script 2>/dev/null || true',
-                f'{ip_cmd} addr add {s["address"]} dev "$dev" 2>/dev/null || true',
-                f'{ip_cmd} route add {s["gateway"]} dev "$dev" 2>/dev/null || true',
-                f'{ip_cmd} route add default via {s["gateway"]} dev "$dev" onlink 2>/dev/null || true',
+                'ip link set "$dev" up || true',
+            ]
+            if s.get("dynamic"):
+                net_cmds.append(
+                    'udhcpc -i "$dev" -t 2 -T 1 -b -s /etc/udhcpc.script 2>/dev/null || true'
+                )
+            net_cmds += [
+                f'{ip_cmd} addr add {s["address"]} dev "$dev" || true',
+                f'{ip_cmd} route add {s["gateway"]} dev "$dev" || true',
+                f'{ip_cmd} route add default via {s["gateway"]} dev "$dev" onlink || true',
             ]
     buf = io.BytesIO()
     buf.write(cpio_entry("induo", b"", 0o040755))
@@ -678,7 +690,7 @@ def deploy_and_boot_stage(target: Target, p: dict, initrd: bytes, timeout: int):
             )
 
     boot_sh = f"""set -e
-cmdline="console=tty0 console=ttyS0,115200n8 console=ttyAMA0,115200n8 earlycon panic=10 net.ifnames=0 induo.timeout={timeout}"
+cmdline="console=tty0 console=ttyS0,115200n8 console=ttyAMA0,115200n8 earlycon panic=10 net.ifnames=0 random.trust_cpu=on induo.timeout={timeout}"
 
 # 1. Clean up old failed files on ESP to immediately free up space
 rm -rf /efi/induo /boot/efi/induo /boot/EFI/induo
