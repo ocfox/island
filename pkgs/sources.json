@@ -35,6 +35,26 @@
       "hash": "sha256-884uR+ruoKyfmCHfnmKCEgBCacY4N0vK9GuSbxCQSO8="
     }
   },
+  "discord-phoenix": {
+    "type": "manual",
+    "version": "0.1.0.2233",
+    "src": {
+      "url": "https://dl.redeem.saarland/desktop/2233/linux-x64.AppImage",
+      "hash": "sha256-c4CO5T2i7w3JhFcYQL7A7TMR+p4u8SNsoBxc2C9Vmr4="
+    }
+  },
+  "sunbird": {
+    "type": "github",
+    "branch": "main",
+    "version": "0-unstable-2026-11-26",
+    "cargoHash": "sha256-zvsr8LAnZhCTQlgNPgoENyDXtcV8hKPu9s8Ry888xbE=",
+    "src": {
+      "owner": "sunbird-tools",
+      "repo": "sunbird",
+      "rev": "302d4356a1d0bcb6f53ac50163a9bd6678c66ee2",
+      "hash": "sha256-92za8p1JdxncG4lT/4Z4SMIQoBvURuuBBIB1vdxPPYg="
+    }
+  },
   "xwayland-satellite": {
     "type": "github-release",
     "version": "0.8.3",
