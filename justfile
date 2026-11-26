@@ -33,14 +33,9 @@ _rebuild action host:
         exit 0
     fi
 
-    declare -A ips=(
-        ["kumo"]="100.64.0.3"
-    )
-
-    target="${ips[{{ host }}]:-{{ host }}}"
     nixos-rebuild {{ action }} \
         --flake ".#{{ host }}" \
-        --target-host "ib@${target}" \
+        --target-host "{{ host }}" \
         --sudo \
         --ask-sudo-password \
         --use-substitutes
