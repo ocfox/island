@@ -3,15 +3,15 @@
     "type": "github-release-binary",
     "owner": "zen-browser",
     "repo": "desktop",
-    "version": "1.24b",
+    "version": "1.24.3b",
     "asset_pattern": "zen.linux-{arch}.tar.xz",
     "x86_64-linux": {
-      "url": "https://github.com/zen-browser/desktop/releases/download/1.24b/zen.linux-x86_64.tar.xz",
-      "hash": "sha256-Mj8mguc+OCR6UfvMdeVijtK7m0BNsAz5zxavMpqRb64="
+      "url": "https://github.com/zen-browser/desktop/releases/download/1.24.3b/zen.linux-x86_64.tar.xz",
+      "hash": "sha256-3eS05EACEowv8+/FYHTmccJO/+Vv0ZKrLu45clQeGi0="
     },
     "aarch64-linux": {
-      "url": "https://github.com/zen-browser/desktop/releases/download/1.24b/zen.linux-aarch64.tar.xz",
-      "hash": "sha256-7C/0CoCdaY0ZDlijK2JztWTBr5wk2xskQjJ+q33Nb2Y="
+      "url": "https://github.com/zen-browser/desktop/releases/download/1.24.3b/zen.linux-aarch64.tar.xz",
+      "hash": "sha256-d8BL2wV1q5GMHW9B0EpVmW0iY4JKA5LcGz843rhzpXo="
     }
   },
   "grim": {
