@@ -22,5 +22,9 @@
           target-colorspace-hint = "yes";
         }
       );
+
+      my.config."mpv/input.conf" = pkgs.writeText "input.conf" ''
+        MBTN_RIGHT cycle pause
+      '';
     };
 }
