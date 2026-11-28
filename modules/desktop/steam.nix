@@ -8,7 +8,7 @@
           extraProfile = ''
             export XCURSOR_PATH="${pkgs.apple-cursor}/share/icons''${XCURSOR_PATH:+:$XCURSOR_PATH}"
             export XCURSOR_THEME="macOS"
-            export XCURSOR_SIZE=48
+            export XCURSOR_SIZE=24
           '';
         };
       };
